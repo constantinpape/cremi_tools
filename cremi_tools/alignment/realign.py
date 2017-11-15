@@ -2,11 +2,11 @@ import os
 from subprocess import call
 
 
-def realign_sample(raw_file,
-                   sample,
-                   out_file,
-                   labels_file=None,
-                   labels_key=None):
+def realign_raw(raw_file,
+                sample,
+                out_file,
+                labels_file=None,
+                labels_key=None):
     assert sample in ('A', 'B', 'C', 'A+', 'B+', 'C+')
     assert os.path.exists(raw_file)
     if labels_file is not None:
