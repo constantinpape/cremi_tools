@@ -36,5 +36,18 @@ def realign_raw(raw_file,
 def rename_key(out_file, old_key='volumes/raw', new_key='data'):
     import h5py
     with h5py.File(out_file) as f:
-        f[new_key] = f[old_key]
+        f.copy(old_key, new_key)
         del f[old_key]
+        # FIXME this should work, but for some reason doesn't...
+        # f[new_key] = f[old_key]
+        # del f[old_key]
+
+
+def postprocess_test_volume(out_file):
+    # rename_key(out_file)
+    import h5py
+    with h5py.File(out_file) as f:
+        del f['volumes/labels/neuron_ids']
+        del f['volumes/labels/clefts']
+
+

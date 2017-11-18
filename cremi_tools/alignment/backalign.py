@@ -34,7 +34,7 @@ offsets = {
 #}
 
 
-def backalign_segmentation(sample, segmentation, out_file, key='volmes/labels/neuron_ids'):
+def backalign_segmentation(sample, segmentation, out_file, key='volumes/labels/neuron_ids'):
 
     # if we get a segmentation, we need to write it to a temp file
     cwd = os.getcwd()
@@ -81,4 +81,4 @@ def backalign_segmentation(sample, segmentation, out_file, key='volmes/labels/ne
           "-c", "64"])
 
     if isinstance(segmentation, np.ndarray):
-        os.remove(segmentation)
+        os.remove(seg_path)
