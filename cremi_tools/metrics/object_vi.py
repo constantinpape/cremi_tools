@@ -26,7 +26,7 @@ def compute_vi_metrics(sub_segmentation, sub_groundtruth, object_counts):
 
     # compute r_ij, q_j and p_i
     r_ij = np.array(counts_in_sub)
-    q_j = np.array(counts_in_full)
+    q_j = np.array(counts_in_full,dtype="float32")
     p_i = float(sub_groundtruth.size)
 
     # compute the first factor in term
