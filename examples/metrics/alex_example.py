@@ -10,12 +10,15 @@ from cremi_tools.metrics import compute_vi_metrics_per_object_improvement
 
 
 def run_example():
+
+    data_path="/mnt/localdata1/amatskev/debugging/vi_scores/"
+
     result_files = ['result.h5', 'result_resolved_local.h5']
     datasets=["splA_z0","splA_z1","splB_z0","splB_z1","splC_z0","splC_z1"]
-    gt_paths = ['./{}/gt.h5'.format(dataset) for dataset in datasets]
+    gt_paths = [data_path + '{}/gt.h5'.format(dataset) for dataset in datasets]
 
-    path_files = ['./{}/false_merge_probs_{}.npy'.format(dataset,dataset) for dataset in datasets]
-    path_data_files = ['./{}/paths_to_objs.npy'.format(dataset) for dataset in datasets]
+    path_files = [data_path + '{}/false_merge_probs_{}.npy'.format(dataset,dataset) for dataset in datasets]
+    path_data_files = [data_path + '{}/paths_to_objs.npy'.format(dataset) for dataset in datasets]
 
     for ii, dataset in enumerate(datasets):
         key = 'z/{}/data'.format(dataset[-1])
@@ -23,9 +26,9 @@ def run_example():
         # load segmentations
         # we need to relabel
         ref_seg, _, mapping = vigra.analysis.relabelConsecutive(
-            vigra.readHDF5("./{}/".format(dataset) + result_files[0], key), start_label=0, keep_zeros=False)
+            vigra.readHDF5(data_path + "{}/".format(dataset) + result_files[0], key), start_label=0, keep_zeros=False)
         res_seg = vigra.analysis.relabelConsecutive(
-            vigra.readHDF5("./{}/".format(dataset) + result_files[1], key), start_label=0, keep_zeros=False)[0]
+            vigra.readHDF5(data_path + "{}/".format(dataset) + result_files[1], key), start_label=0, keep_zeros=False)[0]
 
         # load ground trtuh
         gt = vigra.analysis.relabelConsecutive(vigra.readHDF5(gt_paths[ii], 'data'),
@@ -48,8 +51,8 @@ def run_example():
 
         print("Compute scores took %f s" % (time.time() - t_scores,))
 
-        np.save("./{}/scores_ref.npy".format(dataset),scores_ref)
-        np.save("./{}/scores_res.npy".format(dataset),scores_res)
+        np.save(data_path + "{}/scores_ref.npy".format(dataset),scores_ref)
+        np.save(data_path + "{}/scores_res.npy".format(dataset),scores_res)
 
         print(scores_ref)
         print(scores_res)

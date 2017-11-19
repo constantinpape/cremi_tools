@@ -2,7 +2,49 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="efdb0727-6255-4a9d-8bfe-9a9fd0e60e68" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cremi_tools/metrics/object_vi.py" afterPath="$PROJECT_DIR$/cremi_tools/metrics/object_vi.py" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z0/false_merge_probs_splA_z0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z0/gt.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z0/paths_to_objs.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z0/result.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z0/result_resolved_local.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z0/scores_ref.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z0/scores_res.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z1/false_merge_probs_splA_z1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z1/gt.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z1/paths_to_objs.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z1/result.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z1/result_resolved_local.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z1/scores_ref.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splA_z1/scores_res.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z0/false_merge_probs_splB_z0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z0/gt.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z0/paths_to_objs.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z0/result.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z0/result_resolved_local.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z0/scores_ref.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z0/scores_res.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z1/false_merge_probs_splB_z1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z1/gt.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z1/paths_to_objs.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z1/result.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z1/result_resolved_local.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z1/scores_ref.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splB_z1/scores_res.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z0/false_merge_probs_splC_z0.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z0/gt.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z0/paths_to_objs.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z0/result.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z0/result_resolved_local.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z0/scores_ref.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z0/scores_res.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z1/false_merge_probs_splC_z1.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z1/gt.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z1/paths_to_objs.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z1/result.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z1/result_resolved_local.h5" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z1/scores_ref.npy" afterPath="" />
+      <change type="DELETED" beforePath="$PROJECT_DIR$/examples/metrics/splC_z1/scores_res.npy" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/examples/metrics/alex_example.py" afterPath="$PROJECT_DIR$/examples/metrics/alex_example.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -13,15 +55,15 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/cremi_tools$alex_example.coverage" NAME="alex_example Coverage Results" MODIFIED="1511097250332" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples/metrics" />
+    <SUITE FILE_PATH="coverage/cremi_tools$alex_example.coverage" NAME="alex_example Coverage Results" MODIFIED="1511097773662" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples/metrics" />
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="alex_example.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="alex_example.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/examples/metrics/alex_example.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1026">
-              <caret line="60" column="0" lean-forward="true" selection-start-line="60" selection-start-column="0" selection-end-line="60" selection-end-column="0" />
+            <state relative-caret-position="253">
+              <caret line="57" column="24" lean-forward="false" selection-start-line="57" selection-start-column="14" selection-end-line="57" selection-end-column="24" />
               <folding>
                 <element signature="e#0#37#0" expanded="true" />
               </folding>
@@ -29,10 +71,10 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="object_vi.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="object_vi.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/cremi_tools/metrics/object_vi.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="103">
+            <state relative-caret-position="-2198">
               <caret line="20" column="22" lean-forward="false" selection-start-line="20" selection-start-column="4" selection-end-line="20" selection-end-column="22" />
               <folding />
             </state>
@@ -161,7 +203,6 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="420" width="1920" height="1021" extended-state="6" />
-    <editor active="true" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.1189968" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -172,7 +213,7 @@
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.39910313" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.39910313" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="true" content_ui="tabs" />
       <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -194,17 +235,12 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cremi_tools/metrics/object_vi.py</url>
-          <line>154</line>
-          <option name="timeStamp" value="10" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cremi_tools/metrics/object_vi.py</url>
-          <line>43</line>
-          <option name="timeStamp" value="13" />
+          <url>file://$PROJECT_DIR$/examples/metrics/alex_example.py</url>
+          <line>56</line>
+          <option name="timeStamp" value="14" />
         </line-breakpoint>
       </breakpoints>
-      <option name="time" value="14" />
+      <option name="time" value="15" />
     </breakpoint-manager>
     <watches-manager />
   </component>
@@ -225,21 +261,21 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/examples/metrics/alex_example.py">
+    <entry file="file://$PROJECT_DIR$/cremi_tools/metrics/object_vi.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1026">
-          <caret line="60" column="0" lean-forward="true" selection-start-line="60" selection-start-column="0" selection-end-line="60" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#37#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="-2198">
+          <caret line="20" column="22" lean-forward="false" selection-start-line="20" selection-start-column="4" selection-end-line="20" selection-end-column="22" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/cremi_tools/metrics/object_vi.py">
+    <entry file="file://$PROJECT_DIR$/examples/metrics/alex_example.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="103">
-          <caret line="20" column="22" lean-forward="false" selection-start-line="20" selection-start-column="4" selection-end-line="20" selection-end-column="22" />
-          <folding />
+        <state relative-caret-position="253">
+          <caret line="57" column="24" lean-forward="false" selection-start-line="57" selection-start-column="14" selection-end-line="57" selection-end-column="24" />
+          <folding>
+            <element signature="e#0#37#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
