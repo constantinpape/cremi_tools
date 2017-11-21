@@ -1,11 +1,9 @@
 from __future__ import print_function
 import os
 from subprocess import call
-
 import numpy as np
-# TODO replace this by our own io version
-from cremi import Volume
-from cremi.io import CremiFile
+
+from ..io import write_custom_key
 
 # TODO need proper offsets
 offsets = {
@@ -40,10 +38,7 @@ def backalign_segmentation(sample, segmentation, out_file, key='volumes/labels/n
     cwd = os.getcwd()
     if isinstance(segmentation, np.ndarray):
         seg_path = os.path.join(cwd, 'tmp1.h5')
-        vol_temp = Volume(segmentation, resolution=(40., 4., 4.))
-        cremi_temp = CremiFile(seg_path, 'w')
-        cremi_temp.write_neuron_ids(vol_temp)
-        cremi_temp.close()
+        write_custom_key(seg_path, segmentation, key)
     elif isinstance(segmentation, str):
         assert os.path.exists(segmentation), segmentation
         seg_path = segmentation
