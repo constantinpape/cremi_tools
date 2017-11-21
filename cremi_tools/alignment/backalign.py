@@ -2,8 +2,8 @@ from __future__ import print_function
 import os
 from subprocess import call
 
-import vigra
 import numpy as np
+# TODO replace this by our own io version
 from cremi import Volume
 from cremi.io import CremiFile
 
@@ -20,18 +20,18 @@ offsets = {
 }
 
 # offsets for larger volumes
-#offsets_test = {
-#    'A': (23, 1060, 839),
-#    'B': (23, 960, 1168),
-#    'C': (23, 886, 1049),
-#}
+# offsets_test = {
+#     'A': (23, 1060, 839),
+#     'B': (23, 960, 1168),
+#     'C': (23, 886, 1049),
+# }
 
 # TODO find correct values !
-#offsets_train = {
-#    'A': (23, 832, 814),
-#    'B': (23, 960, 1284),
-#    'C': (23, 1002, 1165),
-#}
+# offsets_train = {
+#     'A': (23, 832, 814),
+#     'B': (23, 960, 1284),
+#     'C': (23, 1002, 1165),
+# }
 
 
 def backalign_segmentation(sample, segmentation, out_file, key='volumes/labels/neuron_ids'):
@@ -49,8 +49,6 @@ def backalign_segmentation(sample, segmentation, out_file, key='volumes/labels/n
         seg_path = segmentation
     else:
         raise RuntimeError("Unsupported Input type!")
-
-    tmp_file2 = os.path.join(cwd, 'tmp2.h5')
 
     exe_file = "transformations/deform-0.0.1-SNAPSHOT.jar"
     trafo_file = "transformations/sample_%s.transforms.json" % sample

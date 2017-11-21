@@ -21,11 +21,11 @@ def realign_raw(raw_file,
     assert os.path.exists(jar)
 
     cmd = ['java', '-Xmx12g', '-cp', jar,
-          'org.janelia.saalfeldlab.deform.DeformToAligned',
-          '-i', raw_file,
-          '-o', out_file,
-          '-t', transformation,
-          '-c', '64']
+           'org.janelia.saalfeldlab.deform.DeformToAligned',
+           '-i', raw_file,
+           '-o', out_file,
+           '-t', transformation,
+           '-c', '64']
     if labels_file is not None:
         cmd.extend(['-j', labels_file,
                     '-l', labels_key])
@@ -38,9 +38,6 @@ def rename_key(out_file, old_key='volumes/raw', new_key='data'):
     with h5py.File(out_file) as f:
         f.copy(old_key, new_key)
         del f[old_key]
-        # FIXME this should work, but for some reason doesn't...
-        # f[new_key] = f[old_key]
-        # del f[old_key]
 
 
 def postprocess_test_volume(out_file):
@@ -49,5 +46,3 @@ def postprocess_test_volume(out_file):
     with h5py.File(out_file) as f:
         del f['volumes/labels/neuron_ids']
         del f['volumes/labels/clefts']
-
-
