@@ -4,7 +4,7 @@ from .vi_metrics import voi
 from .border_mask import create_border_mask
 
 
-def cremi_scores(seg, gt, border_threshold=None):
+def cremi_scores(seg, gt, border_threshold=None, return_all=True):
     """
     Compute the cremi scores (Average of adapted rand error, vi-split, vi-merge)
 
@@ -35,4 +35,7 @@ def cremi_scores(seg, gt, border_threshold=None):
     vi_s, vi_m = voi(seg, gt_)
     are = adapted_rand(seg, gt_)
     cs = (vi_s + vi_m + are) / 3
-    return cs, vi_s, vi_m, are
+    if return_all:
+        return cs
+    else:
+        return cs, vi_s, vi_m, are
