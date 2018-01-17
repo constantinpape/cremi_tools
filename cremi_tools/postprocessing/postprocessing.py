@@ -1,5 +1,6 @@
 import numpy as np
 import vigra
+import nifty
 import nifty.graph.rag as nrag
 
 
@@ -22,9 +23,16 @@ def merge_small_segments(segmentation, hmap, size_threshold, ignore_background=F
     return segmentation
 
 
-# TODO
 def merge_fully_enclosed(segmentation, n_threads=8):
     rag = nrag.gridRag(segmentation, numberOfThreads=n_threads)
+    ufd = nifty.ufd.ufd(rag.numberOfNodes)
+    nodes = np.unique(segmentation)
+    for node in nodes:
+        adjacency = [adj for adj in rag.nodeAdjacency(node)]
+        if len(adjacency) == 1:
+            ufd.merge(node, adjacency[0][0])
+    labeling = ufd.elementLabeling()
+    return nrag.projectScalarNodeDataToPixels(rag, labeling)
 
 
 def merge_mitos(segmentation, mito_map):
