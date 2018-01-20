@@ -36,6 +36,6 @@ def cremi_scores(seg, gt, border_threshold=None, return_all=True):
     are = adapted_rand(seg, gt_)
     cs = (vi_s + vi_m + are) / 3
     if return_all:
-        return cs
+        return {'cremi-score': cs, 'vi-split': vi_s, 'vi-merge': vi_m, 'adapted_rand': are}
     else:
-        return cs, vi_s, vi_m, are
+        return cs
