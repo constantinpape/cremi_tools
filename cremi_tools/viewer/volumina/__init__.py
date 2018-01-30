@@ -1,1 +1,1 @@
-from .viewer import view
+from .volumina import view
