@@ -32,5 +32,5 @@ def check_skeleton(path_to_segmentation, raw_path, swc_folder, obj_id, invert_co
 if __name__ == '__main__':
     seg_path = '/home/papec/mnt/papec/for_dagmar/results_unresolved/splA_z0/result.h5'
     raw_path = '/home/papec/mnt/papec/Work/neurodata_hdd/cremi/sampleA/raw/sampleA_raw_none.h5'
-    swc_folder = '/home/papec/mnt/papec/for_dagmar/results_unresolved/splA_z0/skeletons'
-    check_skeleton(seg_path, raw_path, swc_folder, 120, invert_coordinates=True)
+    swc_folder = '/home/papec/mnt/papec/for_dagmar/results_unresolved/splA_z0/skeletons_moved'
+    check_skeleton(seg_path, raw_path, swc_folder, 15, invert_coordinates=True)
