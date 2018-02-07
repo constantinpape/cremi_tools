@@ -10,7 +10,6 @@ class Oversegmenter(object):
         return self._oversegmentation_impl(input_, **kwargs)
 
 
-# TODO
 class ProblemExtractor(object):
 
     @staticmethod
@@ -29,7 +28,8 @@ class ProblemExtractor(object):
 
 class Segmenter(object):
     def __call__(self, graph, costs, node_sizes=None, edge_sizes=None, **kwargs):
-        return self._segmentation_impl(graph, costs, node_sizes, edge_sizes, **kwargs)
+        return self._segmentation_impl(graph, costs,
+                                       node_sizes=node_sizes, edge_sizes=edge_sizes, **kwargs)
 
     # dummy implementation
     # subclasses can over-ride

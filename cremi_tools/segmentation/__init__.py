@@ -1,4 +1,4 @@
-from .base import Segmenter, Oversegmenter, SegmentationPipelines
+from .base import Segmenter, Oversegmenter, SegmentationPipeline
 from .agglomeration import MalaClustering, AgglomerativeClustering
-from .multicut import Multicut
-from .watershed import DTWatershed LRAffinityWatershed
+from .multicut import Multicut, transform_probabilities_to_costs
+from .watershed import DTWatershed, LRAffinityWatershed

@@ -1,8 +1,8 @@
 from .base import Segmenter
-from .... import Configuration
 
 import numpy as np
 import nifty.graph.opt.multicut as nmc
+from nifty import Configuration
 
 
 # TODO different exponent for edge weighting ?
@@ -110,7 +110,7 @@ class Multicut(Segmenter):
             warmstart = self.solver_options.get('warmstart_greedy', True)
             # TODO need to set this if we use verbosity
             # greedyVisitNth = kwargs.pop('greedyVisitNth', 100)
-            solver_impl = objective.kernighanLinFactory(warmstartGreedy=warmstart).create(objective)
+            solver_impl = objective.kernighanLinFactory(warmStartGreedy=warmstart).create(objective)
         elif self.solver == 'fusion-moves':
             solver_impl = self._get_fusion_moves(objective)
         elif self.solver == 'ilp':

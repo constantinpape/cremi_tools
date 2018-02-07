@@ -17,3 +17,11 @@ class LRAffinityWatershed(Oversegmenter):
 
     def _oversegmentation_impl(self, input_):
         assert input_.ndim == 4
+
+
+class MutexWatershed(Oversegmenter):
+    def __init__(self):
+        pass
+
+    def _oversegmentation_impl(self, input_):
+        assert input_.ndim == 4
