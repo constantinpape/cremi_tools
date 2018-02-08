@@ -1,3 +1,4 @@
+from functools import partial
 import numpy as np
 import nifty
 import nifty.graph.rag as nrag
@@ -6,8 +7,18 @@ import nifty.graph.rag as nrag
 
 
 class Oversegmenter(object):
-    def __call__(self, input_, **kwargs):
-        return self._oversegmentation_impl(input_, **kwargs)
+    # input needs to be inverted for affinity predictions
+    def __init__(self, invert_input=False, return_seeds=False):
+        self.invert_input = invert_input
+        self.return_seeds = return_seeds
+
+    def __call__(self, input_, mask=None, **kwargs):
+        _impl = self._oversegmentation_impl if mask is None else \
+            partial(self._oversegmentation_impl_masked, mask=mask)
+        if self.invert_input:
+            return _impl(1. - input_, **kwargs)
+        else:
+            return _impl(input_, **kwargs)
 
 
 class ProblemExtractor(object):
