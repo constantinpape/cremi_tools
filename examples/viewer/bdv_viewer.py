@@ -14,5 +14,16 @@ def view_block():
          resolution=[1, 1, 10])
 
 
+def view_prediction():
+    raw_path = '/home/papec/mnt/papec/Work/neurodata_hdd/cremi_warped/sampleA+.n5'
+    aff_path = '/home/papec/mnt/papec/torch_master_test_sampleA+.n5'
+    inputs = [raw_path, aff_path]
+    keys = ['raw', 'affs_xy']
+    view(inputs, keys,
+         ranges=[[0, 255], [0, 1]],
+         resolution=[1, 1, 10])
+
+
 if __name__ == '__main__':
-    view_block()
+    # view_block()
+    view_prediction()

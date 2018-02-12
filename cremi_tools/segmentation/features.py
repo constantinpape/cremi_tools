@@ -14,8 +14,8 @@ from .base import ProblemExtractor
 
 STAT_TO_INDEX = {'mean': 0, 'min': 2,
                  'median': 5, 'max': 8,
-                 'quantile10': 3, 'quantile25': 4
-                 'quantile50': 5, 'quantile75': 6
+                 'quantile10': 3, 'quantile25': 4,
+                 'quantile50': 5, 'quantile75': 6,
                  'quantile90': 7}
 
 
