@@ -1,3 +1,5 @@
+import multiprocessing
+from concurrent import futures
 import numpy as np
 import vigra
 from scipy.ndimage.morphology import distance_transform_edt
@@ -152,11 +154,15 @@ class LRAffinityWatershed(Oversegmenter):
             return ws, max_id
 
 
-# TODO multi-threaded
-# TODO implement the classic distance trafo watershed
 class DTWatershed(Oversegmenter):
-    def __init__(self):
-        pass
+    def __init__(self, threshold_dt, sigma_seeds, size_filter=25,
+                 is_anisotropic=True, n_threads=-1, **super_kwargs):
+        super(LRAffinityWatershed, self).__init__(**super_kwargs)
+        self.threshold_dt = threshold_dt
+        self.sigma_seeds = sigma_seeds
+        self.size_filter = size_filter
+        self.is_anisotropic = is_anisotropic
+        self.n_threads = multiprocessing.cpu_count() if n_threads == -1 else n_threads
 
     def _oversegmentation_impl(self, input_):
         assert input_.ndim == 3
