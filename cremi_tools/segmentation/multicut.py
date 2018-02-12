@@ -6,7 +6,10 @@ from nifty import Configuration
 
 
 # TODO different exponent for edge weighting ?
-def transform_probabilities_to_costs(probabilities, beta=.5, edge_sizes=None):
+def transform_probabilities_to_costs(probabilities,
+                                     beta=.5,
+                                     edge_sizes=None,
+                                     weighting_exponent=1.):
     p_min = 0.001
     p_max = 1. - p_min
     costs = (p_max - p_min) * probabilities + p_min
@@ -16,6 +19,8 @@ def transform_probabilities_to_costs(probabilities, beta=.5, edge_sizes=None):
     if edge_sizes is not None:
         assert len(edge_sizes) == len(costs)
         w = edge_sizes / edge_sizes.max()
+        if weighting_exponent != 1.:
+            w = w**weighting_exponent
         costs *= w
     return costs
 
