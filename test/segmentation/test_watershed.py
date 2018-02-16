@@ -1,7 +1,9 @@
 import sys
+import time
 import unittest
 import z5py
 import numpy as np
+import vigra
 
 sys.path.append('../..')
 import cremi_tools.segmentation as cseg
@@ -10,7 +12,7 @@ from cremi_tools.viewer.volumina import view
 
 class TestWatershed(unittest.TestCase):
     # TODO data without mask
-    path = '/home/papec/Work/neurodata_hdd/testdata.n5'
+    path = '/home/papec/Work/my_projects/cluster_tools/prototype/test/testdata.n5'
     bb = np.s_[:, :]
     # bb = np.s_[:20, :756, :756]
 
@@ -28,6 +30,7 @@ class TestWatershed(unittest.TestCase):
              ['raw', 'affs', 'seeds', 'ws'])
 
     def test_wslr_masked(self):
+        tws = time.time()
         bb_aff = (slice(None),) + self.bb
         affs = z5py.File(self.path)['full_affs'][bb_aff]
         mask = z5py.File(self.path)['mask'][self.bb]
@@ -36,7 +39,11 @@ class TestWatershed(unittest.TestCase):
                                              invert_input=True)
         print("Start watershed...")
         ws, seeds, _ = segmenter(affs, mask)
-        print("... done")
+        tws = time.time() - tws
+        print("... done in %f s" % tws)
+
+        vigra.analysis.relabelConsecutive(ws, start_label=1, keep_zeros=True,
+                                          out=ws)
 
         if True:
             f = z5py.File(self.path)
@@ -44,9 +51,9 @@ class TestWatershed(unittest.TestCase):
                                   dtype='uint64', compression='gzip')
             ds[:] = ws.astype('uint64')
 
-        raw = z5py.File(self.path)['raw'][self.bb]
-        view([raw, mask, 1. - affs.transpose((1, 2, 3, 0)), seeds, ws],
-             ['raw', 'mask', 'affs', 'seeds', 'ws'])
+        # raw = z5py.File(self.path)['raw'][self.bb]
+        # view([raw, mask, 1. - affs.transpose((1, 2, 3, 0)), seeds, ws],
+        #      ['raw', 'mask', 'affs', 'seeds', 'ws'])
 
 
 if __name__ == '__main__':
