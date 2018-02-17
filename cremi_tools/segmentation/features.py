@@ -26,20 +26,23 @@ class MeanAffinitiyMapFeatures(ProblemExtractor):
         assert all(len(off) == 3 for off in offsets)
         assert statistic in STAT_TO_INDEX
         self.stat_index = STAT_TO_INDEX[statistic]
+        self.offsets = offsets
 
     def _compute_edge_probabilities(self, input_, fragments=None):
         assert input_.ndim == 4
-        assert input_.shape[0] == len(self.offsets)
+        assert input_.shape[0] == len(self.offsets), "%i, %i" % (input_.shape[0], len(self.offsets))
         features = nrag.accumulateAffinityStandartFeatures(self.rag, input_, self.offsets)
         return features[:, self.stat_index]
 
 
 class MeanBoundaryMapFeatures(ProblemExtractor):
-    def __init__(self, statistic='mean'):
+    def __init__(self, statistic='mean', min_value=0., max_value=1.):
         assert statistic in STAT_TO_INDEX
         self.stat_index = STAT_TO_INDEX[statistic]
+        self.min_value = min_value
+        self.max_value = max_value
 
     def _compute_edge_probabilities(self, input_, fragments=None):
         assert input_.ndim == 3
-        features = nrag.accumulateEdgeStandartFeatures(self.rag, input_)
+        features = nrag.accumulateEdgeStandartFeatures(self.rag, input_, self.min_value, self.max_value)
         return features[:, self.stat_index]

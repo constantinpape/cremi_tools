@@ -27,25 +27,23 @@ class AgglomerationBase(Segmenter):
 
 
 class MalaClustering(AgglomerationBase):
-    def __init__(self, threshold, with_sizes=False, size_regularizer=None, **super_kwargs):
+    def __init__(self, threshold, use_sizes=False, **super_kwargs):
         self.threshold = threshold
-        self.size_regularizer = 0.5 if size_regularizer is None else size_regularizer
-        super(MalaClustering, self).__init__(with_sizes=with_sizes)
+        super(MalaClustering, self).__init__(use_sizes=use_sizes)
 
     def _cluster_policy(self, graph, edge_features, node_sizes, edge_sizes):
         return nagglo.malaClusterPolicy(graph=graph,
                                         edgeIndicators=edge_features,
                                         nodeSizes=node_sizes,
                                         edgeSizes=edge_sizes,
-                                        threshold=self.threshold,
-                                        size_regularizer=self.size_regularizer)
+                                        threshold=self.threshold)
 
 
 class AgglomerativeClustering(AgglomerationBase):
-    def __init__(self, n_target_clusters, with_sizes=True, size_regularizer=None):
+    def __init__(self, n_target_clusters, use_sizes=True, size_regularizer=None):
         self.n_target_clusters = n_target_clusters
         self.size_regularizer = 0.5 if size_regularizer is None else size_regularizer
-        super(AgglomerativeClustering, self).__init__(with_sizes=with_sizes)
+        super(AgglomerativeClustering, self).__init__(use_sizes=use_sizes)
 
     def cluster_policy(self, graph, edge_features, node_sizes, edge_sizes):
         return nagglo.edgeWeightedClusterPolicy(graph=graph,
