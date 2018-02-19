@@ -2,7 +2,7 @@ import vigra
 
 sys.path.append('../..')
 import cremi_tools.viewer.volumina as volumina
-from cremi_tools.segmentation_comparison import SegmentationComparison
+from cremi_tools.visualisation import SegmentationComparison
 
 
 def compare_segs():
