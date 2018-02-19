@@ -190,6 +190,12 @@ class MutexWatershed(Oversegmenter):
         assert input_.ndim == 4
 
 
+# TODO stupid idea:
+# use the connected components of the distance transform to split the connected seeds:
+# i.e. compute the distance transform on same threshold as the input map for the
+# cc's, then generate connected components w/ very conservative threshold
+# and reject seeds from the connected components if they have overlap with more than one
+# of the distance transform cc's
 # experimental:
 # seeds from dt watershed on LR affinities
 
