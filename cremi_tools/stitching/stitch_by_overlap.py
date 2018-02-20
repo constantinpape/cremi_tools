@@ -8,7 +8,6 @@ import nifty.tools as nt
 
 # TODO implement the masked version
 def merge_blocks(overlap_ids, overlaps,
-                 overlap_coordinates,
                  overlap_dimension,
                  offsets, ovlp_threshold):
     id_a, id_b = overlap_ids
@@ -16,14 +15,11 @@ def merge_blocks(overlap_ids, overlaps,
     offset_a, offset_b = offsets[id_a], offsets[id_b]
     assert ovlp_a.shape == ovlp_b.shape, "%s, %s" % (str(ovlp_a.shape), str(ovlp_b.shape))
 
-    ovlp_begin = tuple(coord.start for coord in overlap_coordinates)
-    ovlp_end = tuple(coord.stop for coord in overlap_coordinates)
-
     # find the ids ON the actual block boundary
-    ovlp_len = ovlp_a.shape[overlapp_dimension]
+    ovlp_len = ovlp_a.shape[overlap_dimension]
     ovlp_dim_begin = ovlp_len // 2 if ovlp_len % 2 == 1 else ovlp_len // 2 - 1
     ovlp_dim_end = ovlp_len // 2 + 1
-    boundary = tuple(slice(ovlp_begin[i], ovlp_end[i]) if i != overlapp_dimension else
+    boundary = tuple(slice(None) if i != overlap_dimension else
                      slice(ovlp_dim_begin, ovlp_dim_end) for i in range(3))
 
     # measure all overlaps
@@ -67,7 +63,7 @@ def make_new_segmentation(segmentation, blocks,
         segmentation[roi] = nt.take(node_labeling, block)
 
 
-def find_overlap_dimensions(overlap_ids, block_coordinats):
+def find_overlap_dimensions(overlap_ids, block_coordinates):
     overlap_dimensions = {}
     for id_a, id_b in overlap_ids:
         coords_a, coords_b = block_coordinates[id_a], block_coordinates[id_b]
@@ -76,12 +72,12 @@ def find_overlap_dimensions(overlap_ids, block_coordinats):
         diff = tuple(abs(ca - cb) for ca, cb in zip(center_a, center_b))
         ovlp_dim = tuple(d for d in diff if d == 0)
         assert len(ovlp_dim) == 1, str(len(ovlp_dim))
-        overlap_dimension[(id_a, id_b)] = ovlp_dim[0]
+        overlap_dimensions[(id_a, id_b)] = ovlp_dim[0]
     return overlap_dimensions
 
 
 def stitch_segmentations_by_overlap(blocks, block_coordinates,
-                                    overlap_dict, overlap_coord_dict,
+                                    overlap_dict,
                                     out_path, out_key,
                                     ovlp_threshold=.9):
     # validate all inputs
@@ -90,7 +86,6 @@ def stitch_segmentations_by_overlap(blocks, block_coordinates,
     assert isinstance(block_coordinates, list)
     assert all(isinstance(block_coord, tuple) for block_coord in block_coordinates)
     assert isinstance(overlap_dict, dict)
-    assert isinstance(overlap_coord_dict, dict)
 
     # find the minimum and maximum coordinates
     # (this assumes that we have a proper block as input)
@@ -110,7 +105,7 @@ def stitch_segmentations_by_overlap(blocks, block_coordinates,
     offsets = np.cumsum(offsets)
     number_of_nodes = offsets[-1] + last_max_id
 
-    overlap_dimensions = find_overlap_dimensions(overlap_dict.keys(), block_coordinats)
+    overlap_dimensions = find_overlap_dimensions(overlap_dict.keys(), block_coordinates)
 
     # build the final segmentation
     segmentation = np.zeros(shape, dtype='uint32')
@@ -119,10 +114,8 @@ def stitch_segmentations_by_overlap(blocks, block_coordinates,
     # iterate over the overlaps to find the node assignments
     node_assignment = []
     for ovlp_ids, overlaps in overlap_dict.items():
-        overlap_coordinates = overlap_coord_dict[ovlp_ids]
         node_assignment.append(merge_blocks(ovlp_ids, overlaps,
-                                            overlap_coordinates,
-                                            overlap_dimensions
+                                            overlap_dimensions,
                                             offsets, ovlp_threshold))
     node_assignment = np.concatenate([na for na in node_assignment if na is not None],
                                      axis=0)
