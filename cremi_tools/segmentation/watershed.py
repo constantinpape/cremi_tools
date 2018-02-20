@@ -64,15 +64,23 @@ def run_watershed(hmap, seeds):
     return vigra.analysis.watershedsNew(hmap, seeds=seeds)
 
 
-# TODO support different isotropy settings
+# TODO support different isotropy settings for distance transform
 def filter_with_dt(input_, seeds, seed_offset,
-                   threshold_dt, threshold_filter):
+                   threshold_dt, threshold_filter,
+                   is_anisotropic):
     thresholded = input_ < threshold_dt
-    dt = distance_transform_edt(thresholded)
+
+    if is_anisotropic:
+        dt = distance_transform_edt(thresholded)
+    else:
+        dt = np.zeros_like(thresholded, dtype='float32')
+        for z in range(dt.shape[0]):
+            dt[z] = distance_transform_edt(thresholded[z])
+
     filter_map = dt > threshold_filter
     filter_map = vigra.analysis.labelVolumeWithBackground(filter_map.view('uint8'))
-    # TODO this is horribly inefficient, if this idea works out, we need to move it
-    # to cpp ...
+
+    # TODO this is pretty inefficient, if this idea works out, we need to move it to cpp ...
     seed_ids = np.unique(seeds)[1:]
     for seed_id in seed_ids:
         where_seed = seeds == seed_id
@@ -80,11 +88,13 @@ def filter_with_dt(input_, seeds, seed_offset,
         filtered_ids_in_seed = np.unique(where_filtered)
         if filtered_ids_in_seed[0] == 0:
             filtered_ids_in_seed = filtered_ids_in_seed[1:]
+
         # if we have more than one distance transform component,
         # we reject this seed and replace it with the components
         if len(filtered_ids_in_seed) > 1:
             where_filtered[where_filtered != 0] += seed_offset
             seeds[where_seed] = where_filtered
+
     return seeds, seeds.max() + 1
 
 
@@ -116,6 +126,10 @@ class LRAffinityWatershed(Oversegmenter):
         # if we have a filter threshold, we additionally calculate connected
         # components on the distance transofrm of the full map
         if self.threshold_filter is not None:
+
+            if self.return_seeds is not None:
+                unfiltered = seeds.copy()
+
             seeds, seed_offset = filter_with_dt(full, seeds, seed_offset,
                                                 self.threshold_dt, self.threshold_filter)
 
@@ -141,8 +155,10 @@ class LRAffinityWatershed(Oversegmenter):
         if size_filter:
             ws, max_id = size_filter(nearest, ws, self.size_filter)
 
-        if self.return_seeds:
-            return ws, seeds, max_id
+        if self.return_seeds and self.threshold_filter is not None:
+            return ws, max_id, seeds, unfiltered
+        elif self.return_seeds:
+            return ws, max_id, seeds
         else:
             return ws, max_id
 
@@ -157,6 +173,18 @@ class LRAffinityWatershed(Oversegmenter):
         seeds, seed_offset = seeds_from_connected_components(full,
                                                              self.threshold_cc,
                                                              exclusion_mask)
+
+        # if we have a filter threshold, we additionally calculate connected
+        # components on the distance transofrm of the full map
+        if self.threshold_filter is not None:
+
+            if self.return_seeds is not None:
+                unfiltered = seeds.copy()
+
+            full[exclusion_mask] = 1
+            seeds, seed_offset = filter_with_dt(full, seeds, seed_offset,
+                                                self.threshold_dt, self.threshold_filter,
+                                                self.is_anisotropic)
 
         # mask excluded area in the grow map
         nearest[exclusion_mask] = 1
@@ -186,8 +214,10 @@ class LRAffinityWatershed(Oversegmenter):
         ws[exclusion_mask] = 0
         ws, max_id, _ = vigra.analysis.relabelConsecutive(ws, keep_zeros=True)
 
-        if self.return_seeds:
-            return ws, seeds, max_id
+        if self.return_seeds and self.threshold_filter is not None:
+            return ws, max_id, seeds, unfiltered
+        elif self.return_seeds:
+            return ws, max_id, seeds
         else:
             return ws, max_id
 
