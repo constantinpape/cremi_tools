@@ -64,14 +64,40 @@ def run_watershed(hmap, seeds):
     return vigra.analysis.watershedsNew(hmap, seeds=seeds)
 
 
+# TODO support different isotropy settings
+def filter_with_dt(input_, seeds, seed_offset,
+                   threshold_dt, threshold_filter):
+    thresholded = input_ < threshold_dt
+    dt = distance_transform_edt(thresholded)
+    filter_map = dt > threshold_filter
+    filter_map = vigra.analysis.labelVolumeWithBackground(filter_map.view('uint8'))
+    # TODO this is horribly inefficient, if this idea works out, we need to move it
+    # to cpp ...
+    seed_ids = np.unique(seeds)[1:]
+    for seed_id in seed_ids:
+        where_seed = seeds == seed_id
+        where_filtered = filter_map[where_seed]
+        filtered_ids_in_seed = np.unique(where_filtered)
+        if filtered_ids_in_seed[0] == 0:
+            filtered_ids_in_seed = filtered_ids_in_seed[1:]
+        # if we have more than one distance transform component,
+        # we reject this seed and replace it with the components
+        if len(filtered_ids_in_seed) > 1:
+            where_filtered[where_filtered != 0] += seed_offset
+            seeds[where_seed] = where_filtered
+    return seeds, seeds.max() + 1
+
+
 class LRAffinityWatershed(Oversegmenter):
     def __init__(self, threshold_cc, threshold_dt, sigma_seeds, size_filter=25,
-                 is_anisotropic=True, seed_channel=None, **super_kwargs):
+                 threshold_filter=None, is_anisotropic=True,
+                 seed_channel=None, **super_kwargs):
         super(LRAffinityWatershed, self).__init__(**super_kwargs)
         self.threshold_cc = threshold_cc
         self.threshold_dt = threshold_dt
         self.sigma_seeds = sigma_seeds
         self.size_filter = size_filter
+        self.threshold_filter = threshold_filter
         self.is_anisotropic = is_anisotropic
         if seed_channel is not None:
             assert isinstance(seed_channel, list)
@@ -86,6 +112,13 @@ class LRAffinityWatershed(Oversegmenter):
         nearest = np.mean(input_[nn_slice], axis=0)
 
         seeds, seed_offset = seeds_from_connected_components(full, self.threshold_cc)
+
+        # if we have a filter threshold, we additionally calculate connected
+        # components on the distance transofrm of the full map
+        if self.threshold_filter is not None:
+            seeds, seed_offset = filter_with_dt(full, seeds, seed_offset,
+                                                self.threshold_dt, self.threshold_filter)
+
         if self.is_anisotropic:
             seeds_dt, _ = seeds_from_distance_transform_2d(nearest,
                                                            self.threshold_dt,
@@ -188,128 +221,3 @@ class MutexWatershed(Oversegmenter):
 
     def _oversegmentation_impl_masked(self, input_, mask):
         assert input_.ndim == 4
-
-
-# TODO stupid idea:
-# use the connected components of the distance transform to split the connected seeds:
-# i.e. compute the distance transform on same threshold as the input map for the
-# cc's, then generate connected components w/ very conservative threshold
-# and reject seeds from the connected components if they have overlap with more than one
-# of the distance transform cc's
-# experimental:
-# seeds from dt watershed on LR affinities
-
-
-# def seeds_from_connected_dt(input_, threshold_dt, threshold_cc, sigma):
-#     thresholded = input_ < threshold_dt
-#     dt = distance_transform_edt(thresholded).astype('float32')
-#     if sigma > 0.:
-#         dt = vigra.filters.gaussianSmoothing(dt, sigma)
-#     seeds = dt > threshold_cc
-#     seeds = vigra.analysis.labelVolumeWithBackground(seeds.view('uint8'))
-#     return dt, seeds, thresholded
-#
-#
-# def seeds_from_connected_dt_2d(input_, threshold_dt, threshold_cc, sigma):
-#     thresholded = input_ < threshold_dt
-#     dt = np.zeros_like(thresholded, dtype='float32')
-#     for z in range(dt.shape[0]):
-#         dt_z = distance_transform_edt(thresholded[z]).astype('float32')
-#         if sigma > 0.:
-#             dt_z = vigra.filters.gaussianSmoothing(dt_z, sigma)
-#         dt[z] = dt_z
-#     seeds = dt > threshold_cc
-#     seeds = vigra.analysis.labelVolumeWithBackground(seeds.view('uint8'))
-#     return dt, seeds, thresholded
-#
-#
-# class LRAffinityDTWatershed(Oversegmenter):
-#     def __init__(self, threshold_cc, threshold_dt, sigma_seeds, size_filter=25,
-#                  is_anisotropic=True, **super_kwargs):
-#         super(LRAffinityDTWatershed, self).__init__(**super_kwargs)
-#         self.threshold_cc = threshold_cc
-#         self.threshold_dt = threshold_dt
-#         self.sigma_seeds = sigma_seeds
-#         self.size_filter = size_filter
-#         self.is_anisotropic = is_anisotropic
-#
-#     def _oversegmentation_impl(self, input_):
-#         assert input_.ndim == 4
-#         full = np.mean(input_, axis=0)
-#         nn_slice = slice(1, 3) if self.is_anisotropic else slice(0, 3)
-#         nearest = np.mean(input_[nn_slice], axis=0)
-#
-#         seeds, seed_offset = seeds_from_connected_components(full, self.threshold_cc)
-#         if self.is_anisotropic:
-#             seeds_dt, _ = seeds_from_distance_transform_2d(nearest,
-#                                                            self.threshold_dt,
-#                                                            self.sigma_seeds)
-#         else:
-#             seeds_dt, _ = seeds_from_distance_transform(nearest,
-#                                                         self.threshold_dt,
-#                                                         self.sigma_seeds)
-#
-#         # merge seeds
-#         seeds_dt[seeds_dt != 0] += seed_offset
-#         no_seed_mask = seeds == 0
-#         seeds[no_seed_mask] = seeds_dt[no_seed_mask]
-#
-#         # run watershed
-#         if self.is_anisotropic:
-#             ws, max_id = run_watershed_2d(nearest, seeds)
-#         else:
-#             ws, max_id = run_watershed(nearest, seeds)
-#         if size_filter:
-#             ws, max_id = size_filter(nearest, ws, self.size_filter)
-#
-#         if self.return_seeds:
-#             return ws, seeds, max_id
-#         else:
-#             return ws, max_id
-#
-#     def _oversegmentation_impl_masked(self, input_, mask):
-#         assert input_.ndim == 4
-#         full = np.mean(input_, axis=0)
-#         # nn_slice = slice(1, 3) if self.is_anisotropic else slice(0, 3)
-#         # nearest = np.mean(input_[nn_slice], axis=0)
-#         # get the excluded area (= inverted mask)
-#         exclusion_mask = np.logical_not(mask)
-#
-#         # mask excluded area in the grow map
-#         full[exclusion_mask] = 1
-#         dt, seeds, thresholded = seeds_from_connected_dt_2d(full,
-#                                                             self.threshold_dt,
-#                                                             self.threshold_cc,
-#                                                             self.sigma_seeds)
-#         return dt, seeds, thresholded
-#
-#         # if self.is_anisotropic:
-#         #     seeds_dt, _ = seeds_from_distance_transform_2d(nearest,
-#         #                                                    self.threshold_dt,
-#         #                                                    self.sigma_seeds)
-#         # else:
-#         #     seeds_dt, _ = seeds_from_distance_transform(nearest,
-#         #                                                 self.threshold_dt,
-#         #                                                 self.sigma_seeds)
-#
-#         # # merge seeds
-#         # seeds_dt[seeds_dt != 0] += seed_offset
-#         # no_seed_mask = seeds == 0
-#         # seeds[no_seed_mask] = seeds_dt[no_seed_mask]
-#
-#         # # run watershed
-#         # if self.is_anisotropic:
-#         #     ws, max_id = run_watershed_2d(nearest, seeds)
-#         # else:
-#         #     ws, max_id = run_watershed(nearest, seeds)
-#
-#         # if size_filter:
-#         #     ws, max_id = size_filter(nearest, ws, self.size_filter)
-#
-#         # ws[exclusion_mask] = 0
-#         # ws, max_id, _ = vigra.analysis.relabelConsecutive(ws, keep_zeros=True)
-#
-#         # if self.return_seeds:
-#         #     return ws, seeds, max_id
-#         # else:
-#         #     return ws, max_id
