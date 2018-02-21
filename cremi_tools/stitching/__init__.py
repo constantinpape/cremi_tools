@@ -1,1 +1,1 @@
-from stitch_by_overlap import stitch_segmentation_by_overlap
+from .stitch_by_overlap import stitch_segmentations_by_overlap

@@ -8,18 +8,19 @@ import nifty.tools as nt
 
 # TODO implement the masked version
 def merge_blocks(overlap_ids, overlaps,
-                 overlap_dimension,
+                 overlap_dimensions,
                  offsets, ovlp_threshold):
     id_a, id_b = overlap_ids
     ovlp_a, ovlp_b = overlaps
     offset_a, offset_b = offsets[id_a], offsets[id_b]
     assert ovlp_a.shape == ovlp_b.shape, "%s, %s" % (str(ovlp_a.shape), str(ovlp_b.shape))
 
+    ovlp_dim = overlap_dimensions[(id_a, id_b)]
     # find the ids ON the actual block boundary
-    ovlp_len = ovlp_a.shape[overlap_dimension]
+    ovlp_len = ovlp_a.shape[ovlp_dim]
     ovlp_dim_begin = ovlp_len // 2 if ovlp_len % 2 == 1 else ovlp_len // 2 - 1
     ovlp_dim_end = ovlp_len // 2 + 1
-    boundary = tuple(slice(None) if i != overlap_dimension else
+    boundary = tuple(slice(None) if i != ovlp_dim else
                      slice(ovlp_dim_begin, ovlp_dim_end) for i in range(3))
 
     # measure all overlaps
@@ -52,33 +53,30 @@ def merge_blocks(overlap_ids, overlaps,
 
 # TODO this can be parallelized
 def make_new_segmentation(segmentation, blocks,
-                          block_coordinates, offsets,
+                          block_coordinates, label_offsets,
                           node_labeling, coordinate_offset):
     # we will write some parts of the volumes multiple times,
     # but that should be ok, because the ids will agree due to the merging
-    for block, block_coord, offset in zip(blocks, block_coordinates, offsets):
-        local_begin = tuple(c.start - off for c, off in zip(block_coord, offset))
-        local_end = tuple(c.stop - off for c, off in zip(block_coord, offset))
+    for block, block_coord, label_offset in zip(blocks, block_coordinates, label_offsets):
+        local_begin = tuple(c.start - off for c, off in zip(block_coord, coordinate_offset))
+        local_end = tuple(c.stop - off for c, off in zip(block_coord, coordinate_offset))
         roi = tuple(slice(beg, end) for beg, end in zip(local_begin, local_end))
-        segmentation[roi] = nt.take(node_labeling, block)
+        segmentation[roi] = nt.take(node_labeling, block + label_offset)
 
 
 def find_overlap_dimensions(overlap_ids, block_coordinates):
     overlap_dimensions = {}
     for id_a, id_b in overlap_ids:
         coords_a, coords_b = block_coordinates[id_a], block_coordinates[id_b]
-        center_a = tuple((c.start + c.stop) // 2 for c in coords_a)
-        center_b = tuple((c.start + c.stop) // 2 for c in coords_b)
-        diff = tuple(abs(ca - cb) for ca, cb in zip(center_a, center_b))
-        ovlp_dim = tuple(d for d in diff if d == 0)
-        assert len(ovlp_dim) == 1, str(len(ovlp_dim))
-        overlap_dimensions[(id_a, id_b)] = ovlp_dim[0]
+        equal_axes = tuple(ca.start == cb.start and ca.stop == cb.stop
+                       for ca, cb in zip(coords_a, coords_b))
+        assert sum(equal_axes) == 2
+        overlap_dimensions[(id_a, id_b)] = [i for i, val in enumerate(equal_axes) if not val][0]
     return overlap_dimensions
 
 
 def stitch_segmentations_by_overlap(blocks, block_coordinates,
                                     overlap_dict,
-                                    out_path, out_key,
                                     ovlp_threshold=.9):
     # validate all inputs
     assert isinstance(blocks, list)
@@ -127,8 +125,8 @@ def stitch_segmentations_by_overlap(blocks, block_coordinates,
 
     # assign the new ids
     make_new_segmentation(segmentation, blocks, block_coordinates,
-                          offsets, node_labeling)
+                          offsets, node_labeling, min_coord)
     vigra.analysis.relabelConsecutive(segmentation, out=segmentation)
 
-    # save the new segmentation
-    vigra.writeHDF5(segmentation, out_path, out_key, compression='gzip')
+    # return the new segmentation
+    return segmentation
