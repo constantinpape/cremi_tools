@@ -1,8 +1,14 @@
 import multiprocessing
-from concurrent import futures
+# from concurrent import futures
 import numpy as np
 import vigra
 from scipy.ndimage.morphology import distance_transform_edt
+
+try:
+    import constrained_mst as cmst
+    WITH_CMST = True
+except ImportError as e:
+    WITH_CMST = False
 
 from .base import Oversegmenter
 
@@ -241,13 +247,45 @@ class DTWatershed(Oversegmenter):
         assert input_.ndim == 3
 
 
-# TODO mutex ws
 class MutexWatershed(Oversegmenter):
-    def __init__(self):
-        pass
+    def __init__(self, offsets, strides,
+                 seperating_channel=3,
+                 invert_repulsive_channels=True,
+                 randomize_bounds=True):
+        assert WITH_CMST
+        assert isinstance(offsets, list)
+        assert all(isinstance(off, list) for off in offsets)
+        self.offsets = offsets
+        assert isinstance(strides, list)
+        assert all(isinstance(stride, list) for stride in strides)
+        self.strides = strides
+        self.seperating_channel = seperating_channel
+        self.invert_repulsive_channels = invert_repulsive_channels
+        self.randomize_bounds = randomize_bounds
 
+    # TODO subsample before sorting ?!
     def _oversegmentation_impl(self, input_):
         assert input_.ndim == 4
+        assert len(input_) == len(self.offsets), "%s, %i" % (str(input_.shape), len(self.offsets))
+        if self.invert_repulsive_channels:
+            input_[self.seperating_channel:] *= -1
+            input_[self.seperating_channel:] += 1
 
+        # TODO subsampling before sorting
+        sorted_edges = np.argsort(input_.ravel())
+
+        # run the mst watershed
+        mst = cmst.ConstrainedWatershed(np.array(input_.shape[1:]),
+                                        self.offsets,
+                                        self.seperating_channel,
+                                        self.strides)  # need [1, 1, 1] strides if we subsample before sorting
+        # don't need this if we subsample before sorting
+        if self.randomize_bounds:
+            mst.compute_randomized_bounds()
+        mst.repulsive_ucc_mst_cut(sorted_edges, 0)
+        segmentation = mst.get_flat_label_image().reshape(input_.shape[1:])
+        return segmentation
+
+    # TODO how do we mask ?!
     def _oversegmentation_impl_masked(self, input_, mask):
         assert input_.ndim == 4
