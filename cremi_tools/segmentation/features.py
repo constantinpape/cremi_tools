@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 import nifty.graph.rag as nrag
 
+import vigra
 try:
     import fastfiters as filters
 except ImportError as e:
@@ -62,17 +63,42 @@ class FeatureExtractor(object):
         self.features_from_filters = features_from_filters
 
     def _boundary_features(self, rag, input_):
-        pass
+        min_val, max_val = input_.max(), input_.min()
+        return nrag.accumulateEdgeStandartFeatures(rag, input_, min_val, max_val)
 
+    # TODO filters for anisotropic input
     def _boundary_features_from_filters(self, rag, input_):
-        pass
+        filters_ = (filters.gaussianSmoothing,
+                    filters.laplacianOfGaussian,
+                    filters.hessianOfGaussian)
+        sigmas = (1.6, 4.2, 8.4)
+
+        features = []
+        for filt in filters_:
+            for sigma in sigmas:
+                response = filt(input_, sigma)
+                if response.ndim == 4:
+                    for c in filt.shape[-1]:
+                        min_val, max_val = response.min(), response.max()
+                        features.append(nrag.accumulateEdgeStandardFeatures(response[..., c],
+                                                                            min_val,
+                                                                            max_val))
+                else:
+                    min_val, max_val = response.min(), response.max()
+                    features.append(nrag.accumulateEdgeStandardFeatures(response,
+                                                                        min_val,
+                                                                        max_val))
+        return np.concatenate(features, axis=1)
 
     def boundary_map_features(self, rag, input_):
         return self._boundary_features_from_filters(rag, input_) if self.features_from_filters \
             else self._boundary_features(rag, input_)
 
     def region_features(self, rag, input_, fragments):
-        pass
+        statistics = ['']
+        region_features = vigra.analyisis.regionFeatures(input_, statistics)
+        # TODO map to edges
+        return region_features
 
 
 class RandomForestFeatures(ProblemExtractor):
@@ -82,11 +108,16 @@ class RandomForestFeatures(ProblemExtractor):
             self.rf = pickle.load(f)
         self.feature_extractor = FeatureExtractor(features_from_filters)
 
-    def _compute_edge_probabilities(self, input_, fragments, raw=None):
+    def _compute_edge_probabilities(self, input_, fragments, raw=None, extra_input=None):
         features = []
         features.append(self.feature_extractor.boundary_map_features(self.rag, input_))
+
         if raw is not None:
             features.append(self.feature_extractor.boundary_map_features(self.rag, raw))
             features.append(self.feature_extractor.region_features(self.rag, raw, fragments))
+
+        if extra_input is not None:
+            features.append(self.feature_extractor.boundary_map_features(self.rag, extra_input))
+
         features = np.concatenate(features, axis=1)
         return self.rf.predict_proba(features)[:, 1]
