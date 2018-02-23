@@ -95,9 +95,25 @@ class FeatureExtractor(object):
             else self._boundary_features(rag, input_)
 
     def region_features(self, rag, input_, fragments):
-        statistics = ['']
-        region_features = vigra.analyisis.regionFeatures(input_, statistics)
-        # TODO map to edges
+        # list of the region statistics, that we want to extract
+        statistics =  [ "Count", "Mean", "Variance",
+                        "Skewness", "Kurtosis",
+                        "Maximum", "Minimum", "Quantiles",
+                        "RegionRadii", "Variance"]
+
+        extractor = vigra.analysis.extractRegionFeatures(input_, fragments,
+                                                         features=statistics)
+        node_features = np.concatenate([extractor[stat_name][:, None].astype('float32')
+                                        if extractor[stat_name].ndim == 1 else extractor[stat_name].astype('float32') for stat_name in statistics],
+                                       axis=1)
+        uv_ids = rag.uvIds()
+        fU = node_features[uv_ids[:,0],:]
+        fV = node_features[uv_ids[:,1],:]
+
+        region_features = np.concatenate([np.minimum(fU, fV),
+                                          np.maximum(fU, fV),
+                                          np.abs(fU - fV),
+                                          fU + fV], axis=1)
         return region_features
 
 
