@@ -1,4 +1,13 @@
+import os
+import pickle
+import numpy as np
 import nifty.graph.rag as nrag
+
+try:
+    import fastfiters as filters
+except ImportError as e:
+    import vigra.filters as filters
+
 from .base import ProblemExtractor
 
 # Feature extractors yield:
@@ -46,3 +55,38 @@ class MeanBoundaryMapFeatures(ProblemExtractor):
         assert input_.ndim == 3
         features = nrag.accumulateEdgeStandartFeatures(self.rag, input_, self.min_value, self.max_value)
         return features[:, self.stat_index]
+
+
+class FeatureExtractor(object):
+    def __init__(self, features_from_filters):
+        self.features_from_filters = features_from_filters
+
+    def _boundary_features(self, rag, input_):
+        pass
+
+    def _boundary_features_from_filters(self, rag, input_):
+        pass
+
+    def boundary_map_features(self, rag, input_):
+        return self._boundary_features_from_filters(rag, input_) if self.features_from_filters \
+            else self._boundary_features(rag, input_)
+
+    def region_features(self, rag, input_, fragments):
+        pass
+
+
+class RandomForestFeatures(ProblemExtractor):
+    def __init__(self, rf_path, features_from_filters=False):
+        assert os.path.exists(rf_path), rf_path
+        with open(rf_path, 'rb') as f:
+            self.rf = pickle.load(f)
+        self.feature_extractor = FeatureExtractor(features_from_filters)
+
+    def _compute_edge_probabilities(self, input_, fragments, raw=None):
+        features = []
+        features.append(self.feature_extractor.boundary_map_features(self.rag, input_))
+        if raw is not None:
+            features.append(self.feature_extractor.boundary_map_features(self.rag, raw))
+            features.append(self.feature_extractor.region_features(self.rag, raw, fragments))
+        features = np.concatenate(features, axis=1)
+        return self.rf.predict_proba(features)[:, 1]
