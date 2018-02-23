@@ -289,3 +289,14 @@ class MutexWatershed(Oversegmenter):
     # TODO how do we mask ?!
     def _oversegmentation_impl_masked(self, input_, mask):
         assert input_.ndim == 4
+        assert input_.ndim == 4
+        assert len(input_) == len(self.offsets), "%s, %i" % (str(input_.shape), len(self.offsets))
+        if self.invert_repulsive_channels:
+            input_[self.seperating_channel:] *= -1
+            input_[self.seperating_channel:] += 1
+
+        # we mask by setting the local / attractive affinity channels to 1, so they will never be drawn
+        # TODO is this correct ?
+        input_[:3, mask] = 1
+
+        # TODO do the rest
