@@ -62,6 +62,14 @@ class FeatureExtractor(object):
     def __init__(self, features_from_filters):
         self.features_from_filters = features_from_filters
 
+    # consistent order of features
+    def __call__(self, rag, input_, ws, raw=None):
+        features = [self.boundary_map_features(rag, input_)]
+        if raw is not None:
+            features.extend([self.boundary_map_features(rag, raw),
+                             self.region_features(rag, raw, ws)])
+        return np.concatenate(features, axis=1)
+
     def _boundary_features(self, rag, input_):
         min_val, max_val = input_.min(), input_.max()
         return np.nan_to_num(nrag.accumulateEdgeStandartFeatures(rag, input_, min_val, max_val))
@@ -123,17 +131,5 @@ class RandomForestFeatures(ProblemExtractor):
         self.feature_extractor = FeatureExtractor(features_from_filters)
 
     def _compute_edge_probabilities(self, input_, fragments, raw=None, extra_input=None):
-        features = []
-
-        # FIXME we shouldn't use hardcoded feature order
-        if raw is not None:
-            features.append(self.feature_extractor.boundary_map_features(self.rag, raw))
-        features.append(self.feature_extractor.boundary_map_features(self.rag, input_))
-        if raw is not None:
-            features.append(self.feature_extractor.region_features(self.rag, raw, fragments))
-
-        if extra_input is not None:
-            features.append(self.feature_extractor.boundary_map_features(self.rag, extra_input))
-
-        features = np.concatenate(features, axis=1)
+        features = self.feature_extractor(self.rag, input_, fragments, raw)
         return self.rf.predict_proba(features)[:, 1]
