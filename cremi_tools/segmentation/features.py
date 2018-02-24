@@ -63,8 +63,8 @@ class FeatureExtractor(object):
         self.features_from_filters = features_from_filters
 
     def _boundary_features(self, rag, input_):
-        min_val, max_val = input_.max(), input_.min()
-        return nrag.accumulateEdgeStandartFeatures(rag, input_, min_val, max_val)
+        min_val, max_val = input_.min(), input_.max()
+        return np.nan_to_num(nrag.accumulateEdgeStandartFeatures(rag, input_, min_val, max_val))
 
     # TODO filters for anisotropic input
     def _boundary_features_from_filters(self, rag, input_):
@@ -78,17 +78,14 @@ class FeatureExtractor(object):
             for sigma in sigmas:
                 response = filt(input_, sigma)
                 if response.ndim == 4:
-                    for c in filt.shape[-1]:
-                        min_val, max_val = response.min(), response.max()
-                        features.append(nrag.accumulateEdgeStandardFeatures(response[..., c],
-                                                                            min_val,
-                                                                            max_val))
+                    for c in range(response.shape[-1]):
+                        feats = self._boundary_features(rag, response[..., c])
+                        features.append(feats)
                 else:
-                    min_val, max_val = response.min(), response.max()
-                    features.append(nrag.accumulateEdgeStandardFeatures(response,
-                                                                        min_val,
-                                                                        max_val))
-        return np.concatenate(features, axis=1)
+                    feats = self._boundary_features(rag, response)
+                    features.append(feats)
+        features = np.concatenate(features, axis=1)
+        return features
 
     def boundary_map_features(self, rag, input_):
         return self._boundary_features_from_filters(rag, input_) if self.features_from_filters \
@@ -96,25 +93,26 @@ class FeatureExtractor(object):
 
     def region_features(self, rag, input_, fragments):
         # list of the region statistics, that we want to extract
-        statistics =  [ "Count", "Mean", "Variance",
-                        "Skewness", "Kurtosis",
-                        "Maximum", "Minimum", "Quantiles",
-                        "RegionRadii", "Variance"]
+        statistics = ["Count", "Mean", "Variance",
+                      "Skewness", "Kurtosis",
+                      "Maximum", "Minimum", "Quantiles",
+                      "RegionRadii", "Variance"]
 
-        extractor = vigra.analysis.extractRegionFeatures(input_, fragments,
+        extractor = vigra.analysis.extractRegionFeatures(input_.astype('float32'), fragments.astype('uint32'),
                                                          features=statistics)
         node_features = np.concatenate([extractor[stat_name][:, None].astype('float32')
-                                        if extractor[stat_name].ndim == 1 else extractor[stat_name].astype('float32') for stat_name in statistics],
+                                        if extractor[stat_name].ndim == 1 else extractor[stat_name].astype('float32')
+                                        for stat_name in statistics],
                                        axis=1)
         uv_ids = rag.uvIds()
-        fU = node_features[uv_ids[:,0],:]
-        fV = node_features[uv_ids[:,1],:]
+        fU = node_features[uv_ids[:, 0], :]
+        fV = node_features[uv_ids[:, 1], :]
 
-        region_features = np.concatenate([np.minimum(fU, fV),
-                                          np.maximum(fU, fV),
-                                          np.abs(fU - fV),
-                                          fU + fV], axis=1)
-        return region_features
+        features = np.concatenate([np.minimum(fU, fV),
+                                   np.maximum(fU, fV),
+                                   np.abs(fU - fV),
+                                   fU + fV], axis=1)
+        return np.nan_to_num(features)
 
 
 class RandomForestFeatures(ProblemExtractor):
@@ -126,10 +124,12 @@ class RandomForestFeatures(ProblemExtractor):
 
     def _compute_edge_probabilities(self, input_, fragments, raw=None, extra_input=None):
         features = []
-        features.append(self.feature_extractor.boundary_map_features(self.rag, input_))
 
+        # FIXME we shouldn't use hardcoded feature order
         if raw is not None:
             features.append(self.feature_extractor.boundary_map_features(self.rag, raw))
+        features.append(self.feature_extractor.boundary_map_features(self.rag, input_))
+        if raw is not None:
             features.append(self.feature_extractor.region_features(self.rag, raw, fragments))
 
         if extra_input is not None:
