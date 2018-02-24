@@ -45,10 +45,10 @@ class AgglomerativeClustering(AgglomerationBase):
         self.size_regularizer = 0.5 if size_regularizer is None else size_regularizer
         super(AgglomerativeClustering, self).__init__(use_sizes=use_sizes)
 
-    def cluster_policy(self, graph, edge_features, node_sizes, edge_sizes):
+    def _cluster_policy(self, graph, edge_features, node_sizes, edge_sizes):
         return nagglo.edgeWeightedClusterPolicy(graph=graph,
                                                 edgeIndicators=edge_features,
-                                                nodeSizes=node_sizes,
-                                                edgeSizes=edge_sizes,
+                                                nodeSizes=node_sizes.astype('float'),
+                                                edgeSizes=edge_sizes.astype('float'),
                                                 numberOfNodesStop=self.n_target_clusters,
                                                 sizeRegularizer=self.size_regularizer)
