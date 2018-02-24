@@ -8,9 +8,9 @@ sys.path.append('../../..')
 
 def segment_block(block_id, weight_edges=False, cached=False):
     import cremi_tools.segmentation as cseg
-    raw_path = '/home/constantin/Work/neurodata_hdd/FIB25/fib_25_blocks/raw/raw_block%i.h5' % block_id
-    pmap_path = '/home/constantin/Work/neurodata_hdd/FIB25/fib_25_blocks/pmaps/probs_squeezed_block%i.h5' % block_id
-    ws_path = '/home/constantin/Work/neurodata_hdd/FIB25/fib_25_blocks/watersheds/watershed_block%i.h5' % block_id
+    raw_path = '/home/papec/Work/neurodata_hdd/fib25/raw/raw_block%i.h5' % block_id
+    pmap_path = '/home/papec/Work/neurodata_hdd/fib25/pmaps/probs_squeezed_block%i.h5' % block_id
+    ws_path = '/home/papec/Work/neurodata_hdd/fib25/watersheds/watershed_block%i.h5' % block_id
 
     # load pmap and watersheds
     raw = vigra.readHDF5(raw_path, 'data').astype('float32')
@@ -40,9 +40,9 @@ def segment_block(block_id, weight_edges=False, cached=False):
 
 
 if __name__ == '__main__':
-    save_prefix = '/home/constantin/Work/neurodata_hdd/FIB25/fib_25_blocks/results/res_fullfeatures_noweight'
+    save_prefix = '/home/papec/Work/neurodata_hdd/fib25/results/res_fullfeats_noweight'
     for block_id in range(1, 9):
         print("Segmenting block", block_id)
-        seg = segment_block(block_id, False, True)
+        seg = segment_block(block_id, False, False)
         vigra.writeHDF5(seg, '%s_%i.h5' % (save_prefix, block_id),
                         'data', compression='gzip')

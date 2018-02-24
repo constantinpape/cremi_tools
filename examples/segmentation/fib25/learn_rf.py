@@ -3,7 +3,6 @@ import pickle
 import os
 import vigra
 from sklearn.ensemble import RandomForestClassifier
-import numpy as np
 
 import nifty.graph.rag as nrag
 sys.path.append('../../..')
@@ -11,10 +10,10 @@ sys.path.append('../../..')
 
 def learn_rf():
     import cremi_tools.segmentation as cseg
-    raw_path = '/home/constantin/Work/neurodata_hdd/FIB25/fib_25_blocks/raw_train_normalized.h5'
-    pmap_path = '/home/constantin/Work/neurodata_hdd/FIB25/fib_25_blocks/pmaps/probabilities_train.h5'
+    raw_path = '/home/papec/Work/neurodata_hdd/fib25/traintest/raw_train_normalized.h5'
+    pmap_path = '/home/papec/Work/neurodata_hdd/fib25/traintest/probabilities_train.h5'
     assert os.path.exists(pmap_path), pmap_path
-    ws_path = '/home/constantin/Work/neurodata_hdd/FIB25/fib_25_blocks/overseg_train.h5'
+    ws_path = '/home/papec/Work/neurodata_hdd/fib25/traintest/overseg_train.h5'
     assert os.path.exists(ws_path), ws_path
 
     # load pmap and watersheds
@@ -27,11 +26,9 @@ def learn_rf():
     rag = nrag.gridRag(ws, numberOfLabels=int(ws.max() + 1))
     # feature extractor and multicut
     feature_extractor = cseg.FeatureExtractor(True)
-    features = np.concatenate([feature_extractor.boundary_map_features(rag, raw),
-                               feature_extractor.boundary_map_features(rag, pmap),
-                               feature_extractor.region_features(rag, raw, ws)], axis=1)
+    features = feature_extractor(rag, pmap, ws, raw)
 
-    gt_path = '/home/constantin/Work/neurodata_hdd/FIB25/fib_25_blocks/gt_train.h5'
+    gt_path = '/home/papec/Work/neurodata_hdd/fib25/traintest/gt_train.h5'
     gt = vigra.readHDF5(gt_path, 'data')
     node_labels = nrag.gridRagAccumulateLabels(rag, gt)
     uv_ids = rag.uvIds()
