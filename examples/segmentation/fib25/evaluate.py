@@ -54,7 +54,7 @@ def gt_projection(block_id):
 
 
 if __name__ == '__main__':
-    for block_id in range(1, 9):
-        gt_projection(block_id)
-    # res_prefix = '/home/papec/Work/neurodata_hdd/fib25/results/res_fullfeats_noweight'
-    # eval_all(res_prefix)
+    # for block_id in range(1, 9):
+    #     gt_projection(block_id)
+    res_prefix = '/home/papec/Work/neurodata_hdd/fib25/results/res_fullfeats_noweight'
+    eval_all(res_prefix)

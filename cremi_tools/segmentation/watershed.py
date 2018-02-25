@@ -1,7 +1,7 @@
 import multiprocessing
 # from concurrent import futures
 import numpy as np
-import numpy.masked_array as ma
+import numpy.ma as ma
 import vigra
 from scipy.ndimage.morphology import distance_transform_edt
 
