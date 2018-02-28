@@ -6,8 +6,8 @@ import nifty.graph.rag as nrag
 
 # only support 0 ignore label
 def merge_small_segments(segmentation, hmap, size_threshold, ignore_background=False):
-    _, seg_counts = np.unique(segmentation, return_counts=True)
-    ignore_segs = np.where(seg_counts < size_threshold)[0]
+    seg_ids, seg_counts = np.unique(segmentation, return_counts=True)
+    ignore_segs = seg_ids[seg_counts < size_threshold]
     mask = np.ma.masked_array(segmentation, np.in1d(segmentation, ignore_segs)).mask
     if ignore_background:
         ignore_mask = segmentation == 0
@@ -19,7 +19,7 @@ def merge_small_segments(segmentation, hmap, size_threshold, ignore_background=F
         vigra.analysis.relabelConsecutive(segmentation, out=segmentation, start_label=1)
         segmentation[ignore_mask] = 0
     else:
-        vigra.analysis.relabelConsecutive(segmentation, out=segmentation, start_label=0)
+        vigra.analysis.relabelConsecutive(segmentation, out=segmentation, start_label=0, keep_zeros=False)
     return segmentation
 
 
