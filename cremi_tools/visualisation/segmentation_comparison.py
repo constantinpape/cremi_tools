@@ -8,7 +8,8 @@ class SegmentationComparison(object):
         self.base_segmentation = base_segmentation
         self.n_threads = n_threads
         self.rag = nrag.gridRag(self.base_segmentation,
-                                self.n_threads)
+                                numberOfLabels=int(base_segmentation.max()) + 1,
+                                numberOfThreads=self.n_threads)
         self.uv_ids = self.rag.uvIds()
         self.volume_builder = nrag.ragCoordinates(self.rag, self.n_threads)
 
