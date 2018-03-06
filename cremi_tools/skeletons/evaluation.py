@@ -18,10 +18,10 @@ class SkeletonMetrics(object):
         self.skeleton_ids = os.listdir(self.skeleton_file)
         self.skeleton_ids = [int(sk) for sk in self.skeleton_ids if sk.isdigit()]
         self.skeleton_ids.sort()
-        self.node_assignment = nskel.getSkeletonNodeAssignments(self.label_file,
-                                                                self.skeleton_file,
-                                                                self.skeleton_ids,
-                                                                numberOfThreads=self.n_threads)
+        # TODO just prelim
+        skel_metrics = nskel.SkeletonMetrics(self.label_file, self.skeleton_file,
+                                             self.skeleton_ids, self.n_threads)
+        self.node_assignment = skel_metrics.getNodeAssignments()
         assert len(self.node_assignment) == len(self.skeleton_ids)
 
     # TODO enable split-score with node relabeling (e.g. for agglomeration result from multicut)
@@ -111,6 +111,3 @@ class SkeletonMetrics(object):
                     else:
                         skeletons_with_merge[skel_id] = [label_id]
         return skeletons_with_merge
-
-    def compute_merges_by_heuristic(self, maximum_distance, node_labeling=None):
-        pass
