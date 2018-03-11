@@ -33,6 +33,10 @@ def realign(raw_file,
     call(cmd)
 
 
+def extract_inference_volume(path, out_path):
+    pass
+
+
 def rename_key(out_file, old_key='volumes/raw', new_key='data'):
     import h5py
     with h5py.File(out_file) as f:
