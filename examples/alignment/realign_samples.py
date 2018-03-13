@@ -1,22 +1,23 @@
+import os
 import sys
-sys.path.append('..')
-from cremi_tools.alignment.realign import realign_sample, postprocess_test_volume
+sys.path.append('../..')
 
 
 def realign_samples(samples):
+    from cremi_tools.alignment.realign import realign
+    folder = '/home/papec/Work/neurodata_hdd/ntwrk_papec/cremi_warped/'
     for sample in samples:
-        raw_path = '/home/papec/Work/neurodata_hdd/ntwrk_papec/cremi_warped/sample_%s_padded_20160601.hdf' % sample
-        out_path = '/home/papec/Work/neurodata_hdd/ntwrk_papec/cremi_warped/cremi_warped_sample%s.h5' % sample
-
-        realign_sample(raw_path, sample, out_path)
+        raw_path = os.path.join(folder, 'original_data/sample_%s_padded_20160601.hdf' % sample)
+        out_path = os.path.join(folder, 'sample%s.h5' % sample)
+        realign(raw_path, sample, out_path)
 
 
 def postprocess(sample):
-        out_path = '/home/papec/Work/neurodata_hdd/ntwrk_papec/cremi_warped/cremi_warped_sample%s.h5' % sample
-        postprocess_test_volume(sample)
+    from cremi_tools.alignment.realign import postprocess_test_volume
+    postprocess_test_volume(sample)
 
 
 if __name__ == '__main__':
-    samples = ['C+',]
+    samples = ('A+', 'B+', 'C+')
     realign_samples(samples)
     # postprocess(samples[0])
