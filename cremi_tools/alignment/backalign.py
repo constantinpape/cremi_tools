@@ -2,6 +2,7 @@ from __future__ import print_function
 import os
 from subprocess import call
 import numpy as np
+import vigra
 
 from ..io import write_custom_key
 
@@ -32,7 +33,9 @@ offsets = {
 # }
 
 
-def backalign_segmentation(sample, segmentation, out_file, key='volumes/labels/neuron_ids'):
+def backalign_segmentation(sample, segmentation, out_file,
+                           key='volumes/labels/neuron_ids',
+                           postprocess=True):
 
     # if we get a segmentation, we need to write it to a temp file
     cwd = os.getcwd()
@@ -75,3 +78,9 @@ def backalign_segmentation(sample, segmentation, out_file, key='volumes/labels/n
 
     if isinstance(segmentation, np.ndarray):
         os.remove(seg_path)
+
+    if postprocess:
+        out = vigra.readHDF5(out_file, key)
+        out = vigra.analysis.labelVolumeWithBackground(out)
+        os.remove(out_file)
+        vigra.writeHDF5(out, out_file, key, compression='gzip')
