@@ -181,7 +181,7 @@ class LiftedMulticut(object):
 
         # TODO visitors and time limit!
         # TODO would be nice to have solver chaining in nifty for lmc too
-        solver_ga = objective.greedyAdditiveFactory().create(objective)
+        solver_ga = objective.liftedMulticutGreedyAdditiveFactory().create(objective)
         # first solve greedy-agglomerative
         node_labels = solver_ga.optimize()
         if self.solver == 'greedy-additive':
