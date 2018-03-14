@@ -2,6 +2,7 @@ from .base import Segmenter
 
 import numpy as np
 import nifty.graph.opt.multicut as nmc
+import nifty.graph.opt.lifted_multicut as nlmc
 from nifty import Configuration
 
 
@@ -108,6 +109,55 @@ class Multicut(Segmenter):
     # TODO support logging visitor
     def _segmentation_impl(self, graph, costs, time_limit=None, **kwargs):
         objective = nmc.multicutObjective(graph, costs)
+
+        if self.solver == 'greedy-additive':
+            solver_impl = objective.greedyAdditiveFactory().create(objective)
+        elif self.solver == 'kernighan-lin':
+            warmstart = self.solver_options.get('warmstart_greedy', True)
+            # TODO need to set this if we use verbosity
+            # greedyVisitNth = kwargs.pop('greedyVisitNth', 100)
+            solver_impl = objective.kernighanLinFactory(warmStartGreedy=warmstart).create(objective)
+        elif self.solver == 'fusion-moves':
+            solver_impl = self._get_fusion_moves(objective)
+        elif self.solver == 'ilp':
+            ilp_backend = self.solver_options.get("ilp_backend", None)
+            solver_impl = objective.multicutIlpFactory(ilpSolver=ilp_backend).create(objective)
+
+        # TODO this needs to change once we suport verbosity / logging
+        if time_limit is None:
+            node_labels = solver_impl.optimize()
+        else:
+            visitor = objective.verboseVisitor(visitNth=100000000, timeLimitSolver=time_limit)
+            node_labels = solver_impl.optimize(visitor=visitor)
+
+        return node_labels
+
+
+# FIXME
+class LiftedMulticut(Segmenter):
+    solvers = ["greedy-additive", "kernighan-lin", "fusion-moves"]
+
+    def __init__(self, solver, beta=.5, weight_edges=True, **solver_options):
+        assert solver in self.solvers
+        if solver == "ilp":
+            assert self._have_ilp()
+        self.solver = solver
+        assert 0. < beta < 1.
+        self.beta = beta
+        self.weight_edges = weight_edges
+        self.solver_options = solver_options
+
+    def probabilities_to_costs(self, probabilities, edge_sizes=None):
+        if self.weight_edges:
+            assert edge_sizes is not None
+            return transform_probabilities_to_costs(probabilities, self.beta, edge_sizes)
+        else:
+            return transform_probabilities_to_costs(probabilities, self.beta)
+
+    # TODO kwarg for verbosity
+    # TODO support logging visitor
+    def _segmentation_impl(self, graph, costs, time_limit=None, **kwargs):
+        objective = nlmc.multicutObjective(graph, costs)
 
         if self.solver == 'greedy-additive':
             solver_impl = objective.greedyAdditiveFactory().create(objective)
