@@ -200,9 +200,9 @@ if __name__ == '__main__':
                [-3, 0, 0], [0, -9, 0], [0, 0, -9],
                [-4, 0, 0], [0, -27, 0], [0, 0, -27]]
 
-    # mws = mws_segmentation(affs, offsets)
-    mws = mutex_segmentation(affs, offsets)
+    mws1 = mws_segmentation(affs, offsets)
+    mws2 = mutex_segmentation(affs, offsets)
 
     raw_path = '/home/papec/Work/neurodata_hdd/cremi/sampleB+_raw_cut.h5'
     raw = vigra.readHDF5(raw_path, 'data')[bb]
-    view([raw, mws])
+    view([raw, mws1, mws2])

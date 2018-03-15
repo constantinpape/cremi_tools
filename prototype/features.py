@@ -21,6 +21,12 @@ def local_features(affs, seg, offsets):
 
 
 # TODO check random forest features
+def nearest_features(affs, seg):
+    offsets = [[-1, 0, 0], [0, -1, 0], [0, 0, -1]]
+    feats = cseg.MeanAffinitiyMapFeatures(offsets)
+    affs_ = affs[:3]
+    rag, probs, _, _ = feats(affs_, seg)
+    return probs
 
 
 if __name__ == '__main__':
@@ -34,7 +40,6 @@ if __name__ == '__main__':
                [-3, 0, 0], [0, -9, 0], [0, 0, -9],
                [-4, 0, 0], [0, -27, 0], [0, 0, -27]]
 
-    feats1 = all_features(affs, ws, offsets)
-    feats2 = local_features(affs, ws, offsets)
-    assert np.allclose(feats1, feats2)
-    print("passed")
+    feats1 = local_features(affs, ws, offsets)
+    feats2 = nearest_features(affs, ws)
+    # TODO compare visually + other feats
