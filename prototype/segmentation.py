@@ -1,4 +1,4 @@
-# import time
+import time
 from concurrent import futures
 
 import numpy as np
@@ -111,11 +111,57 @@ def mws_clustering(rag, lifted_uvs, local_features, lifted_features):
     return nrag.projectScalarNodeDataToPixels(rag, node_labels)
 
 
+# Timing
+# Building grid graph...
+# ... in 0.000020 s
+# Extracting problem...
+# ... in 29.998577 s
+# Computing mws...
+# ... in 69.810201 s
 def mws_segmentation(affs, offsets):
+    import nifty.mws as nmws
     shape = affs.shape[1:]
 
+    print("Building grid graph...")
+    t0 = time.time()
+    graph = nifty.graph.undirectedGridGraph(shape)
+    print("... in %f s" % (time.time() - t0,))
 
-if __name__ == '__main__':
+    print("Extracting problem...")
+    t0 = time.time()
+    local_probs, lifted_map = graph.liftedProblemFromLongRangeAffinities(affs, offsets)
+    lifted_uvs = np.array(list(lifted_map.keys()), dtype='uint32')
+    assert lifted_uvs.shape[1] == 2
+    lifted_probs = np.array(list(lifted_map.values()), dtype='float32')
+    print("... in %f s" % (time.time() - t0,))
+
+    print("Computing mws...")
+    t0 = time.time()
+    node_labels = nmws.computeMwsClustering(graph.numberOfNodes, graph.uvIds(), lifted_uvs,
+                                            local_probs, 1. - lifted_probs)
+    print("... in %f s" % (time.time() - t0,))
+    return node_labels.reshape(shape)
+
+
+# Computing mws ...
+# ... in 207.485458 s
+def mutex_segmentation(affs, offsets):
+    import constrained_mst as cmst
+    mst = cmst.ConstrainedWatershed(np.array(affs.shape[1:]),
+                                    np.array(offsets), 3,
+                                    np.array([1, 1, 1]))
+    affs[3:] *= -1
+    affs[3:] += 1
+    print("Computing mws ...")
+    t0 = time.time()
+    sorted_edges = np.argsort(affs.ravel())
+    mst.repulsive_ucc_mst_cut(sorted_edges, 0)
+    print("... in %f s" % (time.time() - t0,))
+    seg = mst.get_flat_label_image().reshape(affs.shape[1:])
+    return seg
+
+
+def compare_all_segmentations():
     aff_path = '/home/papec/mnt/papec/sampleB+_affs_cut.h5'
     affs = 1. - vigra.readHDF5(aff_path, 'data')
     lrws = cseg.LRAffinityWatershed(threshold_cc=0.1, threshold_dt=0.2, sigma_seeds=2.)
@@ -142,3 +188,21 @@ if __name__ == '__main__':
     raw = vigra.readHDF5(raw_path, 'data')
     print(raw.shape, ws.shape, mc_seg.shape)
     view([raw, ws, mc_seg, lmc_seg, mws_seg], ['raw', 'ws', 'mc', 'lmc', 'mws'])
+
+
+if __name__ == '__main__':
+    aff_path = '/home/papec/Work/neurodata_hdd/cremi/sampleB+_affs_cut.h5'
+    affs = 1. - vigra.readHDF5(aff_path, 'data')
+    bb = np.s_[:10, :]
+    affs = affs[(slice(None),) + bb]
+    offsets = [[-1, 0, 0], [0, -1, 0], [0, 0, -1],
+               [-2, 0, 0], [0, -3, 0], [0, 0, -3],
+               [-3, 0, 0], [0, -9, 0], [0, 0, -9],
+               [-4, 0, 0], [0, -27, 0], [0, 0, -27]]
+
+    # mws = mws_segmentation(affs, offsets)
+    mws = mutex_segmentation(affs, offsets)
+
+    raw_path = '/home/papec/Work/neurodata_hdd/cremi/sampleB+_raw_cut.h5'
+    raw = vigra.readHDF5(raw_path, 'data')[bb]
+    view([raw, mws])
