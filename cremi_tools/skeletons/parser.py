@@ -4,7 +4,7 @@ import numpy as np
 
 
 # TODO with bounding box
-class SkeletonParserFromSWC(object):
+class SkeletonParserSWC(object):
     """
     Skeleton Parser for .swc exported from CATMAID.
     """
@@ -42,7 +42,7 @@ class SkeletonParserFromSWC(object):
 
 
 # TODO with bounding box
-class SkeletonParserFromCSV(object):
+class SkeletonParserCSV(object):
     """
     Skeleton Parser for .csv exported from CATMAID.
     """
@@ -54,7 +54,7 @@ class SkeletonParserFromCSV(object):
 
     def parse(self, skeleton_file, return_where_format=False):
         assert os.path.exists(skeleton_file), skeleton_file
-        skeleton_names = []
+        skeleton_names = {}
         skeleton_ids = []
         node_ids = []
         coordinates = []
@@ -65,9 +65,14 @@ class SkeletonParserFromCSV(object):
 
         with open(skeleton_file, 'r', newline='') as f:
             skelreader = csv.reader(f, delimiter=',')
+
+            # skip the header
+            next(skelreader, None)
+
             for values in skelreader:
+
                 # find skeleton ids and names (we only extract a dict from id to name)
-                skel_id = values[1]
+                skel_id = int(values[1])
                 skeleton_ids.append(skel_id)
                 if skel_id != last_id:
                     skeleton_names[skel_id] = values[0]
@@ -75,7 +80,11 @@ class SkeletonParserFromCSV(object):
 
                 # extract node id and parent
                 node_ids.append(int(values[2]))
-                parents.append(int(values[3]))
+                if values[3] == '':
+                    parents.append(-1)
+                else:
+                    parents.append(int(values[3]))
+
                 # extract coordinate
                 coord = [round((float(val) - off) // res)
                          for val, off, res in zip(values[4:7], self.offsets, self.resolution)]
@@ -83,7 +92,7 @@ class SkeletonParserFromCSV(object):
                     coord = coord[::-1]
                 coordinates.append(coord)
                 # extract radius
-                radii.append(float(values[8]) / self.resolution[1])
+                radii.append(float(values[7]) / self.resolution[1])
         if return_where_format:
             coordinates = tuple(np.array([coords[i] for coords in coordinates], dtype='uint32')
                                 for i in range(3))
@@ -91,35 +100,22 @@ class SkeletonParserFromCSV(object):
             coordinates = [list(map(int, coord)) for coord in coordinates]
 
         return {'names': skeleton_names,
-                'skeleton_id': skeleton_ids,
+                'skeleton_ids': skeleton_ids,
                 'node_ids': node_ids,
                 'coordinates': coordinates,
                 'parents': parents,
                 'radii': radii}
 
 
-# TODO reactivate if we need these again
-# def convert_swc_to_volume(swc_file, shape, resolution,
-#                           dtype='uint32',
-#                           invert_coordinates=False,
-#                           label=1):
-#     vol = np.zeros(shape, dtype=dtype)
-#     coords = parse_swc_file(swc_file, resolution, invert_coordinates=invert_coordinates, return_where_format=True)
-#     vol[coords] = label
-#     return vol
-#
-#
-# def paint_in_swc(swc_file, shape, resolution,
-#                  invert_coordinates=False,
-#                  label=1):
-#     from skimage.draw import circle
-#     vol = np.zeros(shape, dtype='uint32')
-#     coords, radii = parse_swc_file(swc_file, resolution,
-#                                    invert_coordinates=invert_coordinates,
-#                                    return_where_format=False,
-#                                    return_radii=True)
-#     for coord, radius in zip(coords, radii):
-#         z, y, x = coord
-#         rr, cc = circle(y, x, radius, shape=shape[1:])
-#         vol[z, rr, cc] = label
-#     return vol
+# TODO support drawing radius from skeletons
+def visualize_skeletons(shape, skeletons, radius=5):
+    from skimage.draw import circle
+    vol = np.zeros(shape, dtype='uint32')
+    for skel_id, values in skeletons.items():
+        assert 'coordinates' in values
+        coords = values['coordinates']
+        for coord in coords:
+            z, y, x = coord
+            rr, cc = circle(y, x, radius, shape=shape[1:])
+            vol[z, rr, cc] = skel_id
+    return vol
