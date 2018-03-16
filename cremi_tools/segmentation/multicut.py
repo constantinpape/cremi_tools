@@ -1,7 +1,9 @@
 from .base import Segmenter
 
 import numpy as np
+import nifty
 import nifty.graph.opt.multicut as nmc
+import nifty.graph.opt.lifted_multicut as nlmc
 from nifty import Configuration
 
 
@@ -128,5 +130,69 @@ class Multicut(Segmenter):
         else:
             visitor = objective.verboseVisitor(visitNth=100000000, timeLimitSolver=time_limit)
             node_labels = solver_impl.optimize(visitor=visitor)
+
+        return node_labels
+
+
+# TODO this does not fit into th `Segmenter` scheme that easily
+# for now, it doesn't inherit from it
+class LiftedMulticut(object):
+    solvers = ["greedy-additive", "kernighan-lin", "fusion-moves"]
+
+    def __init__(self, solver, beta=.5, weight_edges=True, **solver_options):
+        assert solver in self.solvers
+        self.solver = solver
+        assert 0. < beta < 1.
+        self.beta = beta
+        self.weight_edges = weight_edges
+        self.solver_options = solver_options
+
+    def probabilities_to_costs(self, probabilities, edge_sizes=None):
+        if self.weight_edges:
+            assert edge_sizes is not None
+            return transform_probabilities_to_costs(probabilities, self.beta, edge_sizes)
+        else:
+            return transform_probabilities_to_costs(probabilities, self.beta)
+
+    def _get_fusion_moves(self, objective):
+        seeding_strategy = self.solver_options.get('seeding-strategy', 'SEED_FROM_LOCAL')
+        sigma = self.solver_options.get('sigma', 10.)
+        seed_fraction = self.solver_options.get('seed_fraction', .1)
+        pgen = objective.watershedProposalGenerator(seedingStrategy=seeding_strategy,
+                                                    sigma=sigma,
+                                                    numberOfSeeds=seed_fraction)
+        # we leave the number of iterations at default values for now
+        return objective.fusionMoveBasedFactory(proposalGenerator=pgen).create(objective)
+
+    # TODO kwarg for verbosity
+    # TODO support logging visitor
+    def __call__(self, local_uvs, lifted_uvs,
+                 local_costs, lifted_costs,
+                 time_limit=None, **kwargs):
+        n_nodes = int(local_uvs.max()) + 1
+        graph = nifty.graph.undirectedGraph(n_nodes)
+        graph.insertEdges(local_uvs)
+        objective = nlmc.liftedMulticutObjective(graph)
+
+        # TODO local vs. lifted weighting ?!
+
+        objective.setCosts(local_uvs, local_costs)
+        objective.setCosts(lifted_uvs, lifted_costs)
+
+        # TODO visitors and time limit!
+        # TODO would be nice to have solver chaining in nifty for lmc too
+        solver_ga = objective.liftedMulticutGreedyAdditiveFactory().create(objective)
+        # first solve greedy-agglomerative
+        node_labels = solver_ga.optimize()
+        if self.solver == 'greedy-additive':
+            return node_labels
+        else:
+            solver_kl = objective.liftedMulticutKernighanLinFactory().create(objective)
+            node_labels = solver_kl.optimize(node_labels)
+            if self.solver == 'kernighan-lin':
+                return node_labels
+            elif self.solver == 'fusion-moves':
+                solver_fm = self._get_fusion_moves(objective)
+                node_labels = solver_fm.optimize(node_labels)
 
         return node_labels

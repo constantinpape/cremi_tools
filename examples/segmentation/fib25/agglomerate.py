@@ -11,6 +11,7 @@ from cremi import Volume
 
 sys.path.append('../../..')
 import cremi_tools.segmentation as cseg
+from cremi_tools.viewer.volumina import view
 
 
 def agglomerate_sp(ws_path, prob_path, out_path, threshold):
@@ -27,6 +28,8 @@ def agglomerate_sp(ws_path, prob_path, out_path, threshold):
     node_labeling = agglomerator(graph, probs)
     vigra.analysis.relabelConsecutive(node_labeling, out=node_labeling)
     seg = nrag.projectScalarNodeDataToPixels(rag, node_labeling)
+    view([ws, seg])
+
     vigra.writeHDF5(seg, out_path, 'data', compression='gzip')
 
 

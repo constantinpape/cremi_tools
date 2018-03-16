@@ -10,7 +10,7 @@ def segment_block(block_id, weight_edges=False, cached=False):
     import cremi_tools.segmentation as cseg
     raw_path = '/home/papec/Work/neurodata_hdd/fib25/raw/raw_block%i.h5' % block_id
     pmap_path = '/home/papec/Work/neurodata_hdd/fib25/pmaps/probs_squeezed_block%i.h5' % block_id
-    ws_path = '/home/papec/Work/neurodata_hdd/fib25/watersheds/watershed_block%i.h5' % block_id
+    ws_path = '/home/papec/Work/neurodata_hdd/fib25/watersheds/watershed_agglomerated_0.075000_block%i.h5' % block_id
 
     # load pmap and watersheds
     raw = vigra.readHDF5(raw_path, 'data').astype('float32')
@@ -40,7 +40,7 @@ def segment_block(block_id, weight_edges=False, cached=False):
 
 
 if __name__ == '__main__':
-    save_prefix = '/home/papec/Work/neurodata_hdd/fib25/results/res_fullfeats_noweight'
+    save_prefix = '/home/papec/Work/neurodata_hdd/fib25/results/res_fullfeats_noweight_agglomerated'
     for block_id in range(1, 9):
         print("Segmenting block", block_id)
         seg = segment_block(block_id, False, False)
