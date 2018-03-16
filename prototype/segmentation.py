@@ -1,4 +1,6 @@
+import os
 import time
+import pickle
 from concurrent import futures
 
 import numpy as np
@@ -12,6 +14,20 @@ from cremi_tools.viewer.volumina import view
 # import nifty.mws as nmws
 # import nifty.graph.rag as nrag
 # import z5py
+
+
+def full_features(rag, affs, offsets):
+    lifted_uvs, local_features, lifted_features = nrag.computeFeaturesAndNhFromAffinities(rag,
+                                                                                          affs,
+                                                                                          offsets)
+    return lifted_uvs, np.nan_to_num(local_features), np.nan_to_num(lifted_features)
+
+
+def nearest_features(rag, affs):
+    offsets = [[-1, 0, 0], [0, -1, 0], [0, 0, -1]]
+    affs_ = affs[:3]
+    probs = nrag.accumulateAffinityStandartFeatures(rag, affs_, offsets)[:, 0]
+    return probs
 
 
 def thresholding_watersheds_2d(affs, n_threads=8, threshold=0.05, sigma=2.):
@@ -77,10 +93,8 @@ def compare_ws():
     view([raw, ws0, ws1, ws2, ws3, ws4], ['raw', 'ws-2d', 'ws-2d-1', 'ws-3d', 'ws-3d-1', 'lr-ws'])
 
 
-def mc(affs, seg, offsets):
+def mc(rag, probs):
     mc = cseg.Multicut('kernighan-lin', weight_edges=False)
-    feats = cseg.MeanAffinitiyMapFeatures(offsets)
-    rag, probs, _, _ = feats(affs, seg)
     graph = nifty.graph.undirectedGraph(rag.numberOfNodes)
     graph.insertEdges(rag.uvIds())
     costs = mc.probabilities_to_costs(probs)
@@ -98,8 +112,8 @@ def get_lifted_problem(affs, seg, offsets):
 
 def lmc(rag, lifted_uvs, local_features, lifted_features):
     lmc = cseg.LiftedMulticut('kernighan-lin', weight_edges=False)
-    local_costs = lmc.probabilities_to_costs(local_features[:, 0])
-    lifted_costs = lmc.probabilities_to_costs(lifted_features[:, 0])
+    local_costs = lmc.probabilities_to_costs(local_features)
+    lifted_costs = lmc.probabilities_to_costs(lifted_features)
     node_labels = lmc(rag.uvIds(), lifted_uvs, local_costs, lifted_costs)
     return nrag.projectScalarNodeDataToPixels(rag, node_labels)
 
@@ -163,34 +177,58 @@ def mutex_segmentation(affs, offsets):
 
 def compare_all_segmentations():
     aff_path = '/home/papec/mnt/papec/sampleB+_affs_cut.h5'
+    print("Loading affinities")
     affs = 1. - vigra.readHDF5(aff_path, 'data')
+    print(affs.dtype, affs.min(), affs.max())
+    print("Computing watershed")
     lrws = cseg.LRAffinityWatershed(threshold_cc=0.1, threshold_dt=0.2, sigma_seeds=2.)
-    ws, _ = lrws(affs)
+    ws, n_labels = lrws(affs)
+    print("Computing RAG")
+    rag = nrag.gridRag(ws, numberOfLabels=n_labels+1)
 
     offsets = [[-1, 0, 0], [0, -1, 0], [0, 0, -1],
                [-2, 0, 0], [0, -3, 0], [0, 0, -3],
                [-3, 0, 0], [0, -9, 0], [0, 0, -9],
                [-4, 0, 0], [0, -27, 0], [0, 0, -27]]
 
-    print("Running mc")
-    mc_seg = mc(affs, ws, offsets)
+    print("computing features")
+    lifted_uvs, local_features, lifted_features = full_features(rag, affs, offsets)
+    # nearest_probs = nearest_features(rag, affs)
+    local_probs = local_features[:, 0]
+    lifted_probs = lifted_features[:, 0]
 
-    print("Extracting lifted problem")
-    lifted_problem = get_lifted_problem(affs, ws, offsets)
+    # load random forests
+    rf_folder = '/home/papec/mnt/papec/Work/neurodata_hdd/cremi_warped/random_forests'
+    with open(os.path.join(rf_folder, 'rf_ABC_local_affinity_feats.pkl'), 'rb') as f:
+        rf1 = pickle.load(f)
 
-    print("Running LMC")
-    lmc_seg = lmc(*lifted_problem)
+    rf_local_probs = rf1.predict_proba(local_features)[:, 1]
+    with open(os.path.join(rf_folder, 'rf_ABC_lifted_affinity_feats.pkl'), 'rb') as f:
+        rf2 = pickle.load(f)
+    rf_lifted_probs = rf2.predict_proba(lifted_features)[:, 1]
 
-    print("Running MWS clustering")
-    mws_seg = mws_clustering(*lifted_problem)
+    print("computing multicuts")
+    mc_local = mc(rag, local_probs)
+    # mc_nearest = mc(rag, nearest_probs)
+    mc_rf = mc(rag, rf_local_probs)
+
+    print("computing lifted multicuts")
+    lmc_local = lmc(rag, lifted_uvs, local_probs, lifted_probs)
+    # lmc_nearest = lmc(rag, lifted_uvs, nearest_probs, lifted_probs)
+    lmc_rf = lmc(rag, lifted_uvs, rf_local_probs, rf_lifted_probs)
+
+    # print("Running MWS clustering")
+    # mws_seg = mws_clustering(*lifted_problem)
 
     raw_path = '/home/papec/mnt/papec/sampleB+_raw_cut.h5'
     raw = vigra.readHDF5(raw_path, 'data')
-    print(raw.shape, ws.shape, mc_seg.shape)
-    view([raw, ws, mc_seg, lmc_seg, mws_seg], ['raw', 'ws', 'mc', 'lmc', 'mws'])
+    view([raw, ws, mc_local, mc_rf, lmc_local, lmc_rf],
+         ['raw', 'ws', 'mc-local', 'mc-rf', 'lmc-local', 'lmc-rf'])
+    # view([raw, ws, mc_local, mc_rf],
+    #      ['raw', 'ws', 'mc-local', 'mc-rf'])
 
 
-if __name__ == '__main__':
+def compare_mws_pixelwise():
     aff_path = '/home/papec/Work/neurodata_hdd/cremi/sampleB+_affs_cut.h5'
     affs = 1. - vigra.readHDF5(aff_path, 'data')
     bb = np.s_[:10, :]
@@ -206,3 +244,7 @@ if __name__ == '__main__':
     raw_path = '/home/papec/Work/neurodata_hdd/cremi/sampleB+_raw_cut.h5'
     raw = vigra.readHDF5(raw_path, 'data')[bb]
     view([raw, mws1, mws2])
+
+
+if __name__ == '__main__':
+    compare_all_segmentations()
