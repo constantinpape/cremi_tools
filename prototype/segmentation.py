@@ -127,12 +127,12 @@ def mws_clustering(rag, lifted_uvs, local_features, lifted_features):
 
 # Timing
 # Building grid graph...
-# ... in 0.000020 s
+# ... in 0.000018 s
 # Extracting problem...
-# ... in 29.998577 s
+# ... in 0.674187 s
 # Computing mws...
-# ... in 69.810201 s
-def mws_segmentation(affs, offsets):
+# ... in 56.531404 s
+def mws_segmentation(affs, offsets, strides=None):
     import nifty.mws as nmws
     shape = affs.shape[1:]
 
@@ -143,10 +143,19 @@ def mws_segmentation(affs, offsets):
 
     print("Extracting problem...")
     t0 = time.time()
-    local_probs, lifted_map = graph.liftedProblemFromLongRangeAffinities(affs, offsets)
-    lifted_uvs = np.array(list(lifted_map.keys()), dtype='uint32')
+    if strides is None:
+        n_lifted, local_probs, lifted_uvs, lifted_probs = graph.liftedProblemFromLongRangeAffinities(affs,
+                                                                                                     offsets)
+    else:
+        assert len(strides) == 3
+        n_lifted, local_probs, lifted_uvs, lifted_probs = graph.liftedProblemFromLongRangeAffinitiesWithStrides(affs,
+                                                                                                                offsets,
+                                                                                                                strides)
+    # FIXME this should be done in c++, but resizing does weird things
+    lifted_uvs = lifted_uvs[:n_lifted]
+    lifted_probs = lifted_probs[:n_lifted]
     assert lifted_uvs.shape[1] == 2
-    lifted_probs = np.array(list(lifted_map.values()), dtype='float32')
+    assert len(lifted_uvs) == len(lifted_probs)
     print("... in %f s" % (time.time() - t0,))
 
     print("Computing mws...")
@@ -238,12 +247,14 @@ def compare_mws_pixelwise():
                [-3, 0, 0], [0, -9, 0], [0, 0, -9],
                [-4, 0, 0], [0, -27, 0], [0, 0, -27]]
 
-    mws1 = mws_segmentation(affs, offsets)
-    mws2 = mutex_segmentation(affs, offsets)
+    strides = [1, 2, 2]
+    mws1 = mws_segmentation(affs, offsets, strides)
+    # mws2 = mutex_segmentation(affs, offsets)
 
     raw_path = '/home/papec/Work/neurodata_hdd/cremi/sampleB+_raw_cut.h5'
     raw = vigra.readHDF5(raw_path, 'data')[bb]
-    view([raw, mws1, mws2])
+    view([raw, mws1])
+    # view([raw, mws1, mws2])
 
 
 if __name__ == '__main__':
