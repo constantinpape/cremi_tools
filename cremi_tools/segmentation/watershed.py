@@ -51,7 +51,7 @@ def seeds_from_distance_transform(input_, threshold, sigma):
     return seeds, seeds.max() + 1
 
 
-def size_filter(hmap, ws, size_filter=25):
+def filter_by_size(hmap, ws, size_filter=25):
     ids, sizes = np.unique(ws, return_counts=True)
     mask = np.ma.masked_array(ws, np.in1d(ws, ids[sizes < size_filter])).mask
     ws[mask] = 0
@@ -113,8 +113,8 @@ class LRAffinityWatershed(Oversegmenter):
             ws, max_id = run_watershed_2d(nearest, seeds)
         else:
             ws, max_id = run_watershed(nearest, seeds)
-        if size_filter:
-            ws, max_id = size_filter(nearest, ws, self.size_filter)
+        if self.size_filter:
+            ws, max_id = filter_by_size(nearest, ws, self.size_filter)
 
         if self.return_seeds:
             return ws, max_id, seeds
@@ -155,8 +155,8 @@ class LRAffinityWatershed(Oversegmenter):
         else:
             ws, max_id = run_watershed(nearest, seeds)
 
-        if size_filter:
-            ws, max_id = size_filter(nearest, ws, self.size_filter)
+        if self.size_filter:
+            ws, max_id = filter_by_size(nearest, ws, self.size_filter)
 
         ws[exclusion_mask] = 0
         ws, max_id, _ = vigra.analysis.relabelConsecutive(ws, keep_zeros=True)
@@ -177,13 +177,56 @@ class DTWatershed(Oversegmenter):
         self.is_anisotropic = is_anisotropic
         self.n_threads = multiprocessing.cpu_count() if n_threads == -1 else n_threads
 
-    # TODO
     def _oversegmentation_impl(self, input_):
         assert input_.ndim == 3
 
-    # TODO
+        if self.is_anisotropic:
+            seeds, _ = seeds_from_distance_transform_2d(input_,
+                                                        self.threshold_dt,
+                                                        self.sigma_seeds)
+        else:
+            seeds, _ = seeds_from_distance_transform(input_,
+                                                     self.threshold_dt,
+                                                     self.sigma_seeds)
+
+        if self.is_anisotropic:
+            ws, max_id = run_watershed_2d(input_, seeds)
+        else:
+            ws, max_id = run_watershed(input_, seeds)
+        if self.size_filter:
+            ws, max_id = filter_by_size(input_, ws, self.size_filter)
+
+        return ws, max_id
+
     def _oversegmentation_impl_masked(self, input_, mask):
         assert input_.ndim == 3
+
+        # get the excluded area (= inverted mask)
+        exclusion_mask = np.logical_not(mask)
+        # mask excluded area in the grow map
+        input_[exclusion_mask] = 1
+
+        if self.is_anisotropic:
+            seeds, _ = seeds_from_distance_transform_2d(input_,
+                                                        self.threshold_dt,
+                                                        self.sigma_seeds)
+        else:
+            seeds, _ = seeds_from_distance_transform(input_,
+                                                     self.threshold_dt,
+                                                     self.sigma_seeds)
+
+        if self.is_anisotropic:
+            ws, max_id = run_watershed_2d(input_, seeds)
+        else:
+            ws, max_id = run_watershed(input_, seeds)
+
+        if self.size_filter:
+            ws, max_id = filter_by_size(input_, ws, self.size_filter)
+
+        ws[exclusion_mask] = 0
+        ws, max_id, _ = vigra.analysis.relabelConsecutive(ws, keep_zeros=True)
+
+        return ws, max_id
 
 
 class MutexWatershed(Oversegmenter):
