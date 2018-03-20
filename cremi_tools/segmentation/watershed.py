@@ -170,7 +170,7 @@ class LRAffinityWatershed(Oversegmenter):
 class DTWatershed(Oversegmenter):
     def __init__(self, threshold_dt, sigma_seeds, size_filter=25,
                  is_anisotropic=True, n_threads=-1, **super_kwargs):
-        super(LRAffinityWatershed, self).__init__(**super_kwargs)
+        super(DTWatershed, self).__init__(**super_kwargs)
         self.threshold_dt = threshold_dt
         self.sigma_seeds = sigma_seeds
         self.size_filter = size_filter
