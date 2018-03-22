@@ -17,6 +17,23 @@ def seeds_from_connected_components(input_, threshold, exclusion_mask=None):
     return seeds, max_label + 1
 
 
+def seeds_from_zero_components(input_, sigma, exclusion_mask=None):
+    # generate seeds from the zero component, after smoothing
+    if sigma > 0:
+        seed_map = vigra.filters.gaussianSmoothing(input_, sigma)
+    else:
+        seed_map = input_.copy()
+    seed_map -= seed_map.min()
+    seed_map = seed_map == 0
+
+    if exclusion_mask is not None:
+        [exclusion_mask] = 0
+
+    seeds = vigra.analysis.labelVolumeWithBackground(seed_map.view('uint8'))
+    max_label = int(seeds.max())
+    return seeds, max_label + 1
+
+
 def seeds_from_distance_transform_2d(input_, threshold, sigma):
     thresholded = input_ < threshold
     seeds = np.zeros_like(thresholded, dtype='uint32')
@@ -85,7 +102,10 @@ class LRAffinityWatershed(Oversegmenter):
         nn_slice = slice(1, 3) if self.is_anisotropic else slice(0, 3)
         nearest = np.mean(input_[nn_slice], axis=0)
 
-        seeds, seed_offset = seeds_from_connected_components(full, self.threshold_cc)
+        if self.threshold_cc > 0:
+            seeds, seed_offset = seeds_from_connected_components(full, self.threshold_cc)
+        else:
+            seeds, seed_offset = seeds_from_zero_components(full, self.sigma_seeds)
 
         if self.is_anisotropic:
             seeds_dt, _ = seeds_from_distance_transform_2d(nearest,
@@ -122,9 +142,14 @@ class LRAffinityWatershed(Oversegmenter):
         # get the excluded area (= inverted mask)
         exclusion_mask = np.logical_not(mask)
 
-        seeds, seed_offset = seeds_from_connected_components(full,
-                                                             self.threshold_cc,
-                                                             exclusion_mask)
+        if self.threshold_cc > 0:
+            seeds, seed_offset = seeds_from_connected_components(full,
+                                                                 self.threshold_cc,
+                                                                 exclusion_mask)
+        else:
+            seeds, seed_offset = seeds_from_zero_components(full,
+                                                            self.sigma_seeds,
+                                                            exclusion_mask)
 
         # mask excluded area in the grow map
         nearest[exclusion_mask] = 1
