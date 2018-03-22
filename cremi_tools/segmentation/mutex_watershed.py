@@ -14,13 +14,15 @@ class MutexWatershed(Oversegmenter):
     def __init__(self, offsets, strides,
                  seperating_channel=3,
                  invert_repulsive_channels=True,
-                 randomize_bounds=True):
+                 randomize_bounds=True,
+                 **super_kwargs):
+        super(MutexWatershed, self).__init__(**super_kwargs)
         assert WITH_CMST
         assert isinstance(offsets, list)
         assert all(isinstance(off, list) for off in offsets)
         self.offsets = offsets
+
         assert isinstance(strides, list)
-        assert all(isinstance(stride, list) for stride in strides)
         self.strides = strides
         self.seperating_channel = seperating_channel
         self.invert_repulsive_channels = invert_repulsive_channels
@@ -86,8 +88,8 @@ class MutexWatershed(Oversegmenter):
         input_[:3, mask] = 1
 
         # TODO make sure the pre-sorting works
-        sorted_edges = self._sorted_edges(input_)
-        # sorted_edges = np.argsort(input_.ravel())
+        # sorted_edges = self._sorted_edges(input_)
+        sorted_edges = np.argsort(input_.ravel())
 
         # run the mst watershed
         mst = cmst.ConstrainedWatershed(np.array(input_.shape[1:]),
@@ -101,4 +103,4 @@ class MutexWatershed(Oversegmenter):
         #     mst.compute_randomized_bounds()
         mst.repulsive_ucc_mst_cut(sorted_edges, 0)
         segmentation = mst.get_flat_label_image().reshape(input_.shape[1:])
-        return segmentation
+        return segmentation, int(segmentation.max())
