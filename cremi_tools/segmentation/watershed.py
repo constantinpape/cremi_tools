@@ -17,10 +17,15 @@ def seeds_from_connected_components(input_, threshold, exclusion_mask=None):
     return seeds, max_label + 1
 
 
-def seeds_from_zero_components(input_, sigma, exclusion_mask=None):
+def seeds_from_zero_components(input_, sigma, exclusion_mask=None, anisotropic=False):
     # generate seeds from the zero component, after smoothing
     if sigma > 0:
-        seed_map = vigra.filters.gaussianSmoothing(input_, sigma)
+        if anisotropic:
+            seed_map = np.zeros_like(input_, dtype='float32')
+            for z in range(seed_map.shape[0]):
+                seed_map[z] = vigra.filters.gaussianSmoothing(input_[z], sigma)
+        else:
+            seed_map = vigra.filters.gaussianSmoothing(input_, sigma)
     else:
         seed_map = input_.copy()
     seed_map -= seed_map.min()
@@ -105,7 +110,9 @@ class LRAffinityWatershed(Oversegmenter):
         if self.threshold_cc > 0:
             seeds, seed_offset = seeds_from_connected_components(full, self.threshold_cc)
         else:
-            seeds, seed_offset = seeds_from_zero_components(full, self.sigma_seeds)
+            seeds, seed_offset = seeds_from_zero_components(full,
+                                                            self.sigma_seeds,
+                                                            anisotropic=self.is_anisotropic)
 
         if self.is_anisotropic:
             seeds_dt, _ = seeds_from_distance_transform_2d(nearest,
@@ -149,7 +156,8 @@ class LRAffinityWatershed(Oversegmenter):
         else:
             seeds, seed_offset = seeds_from_zero_components(full,
                                                             self.sigma_seeds,
-                                                            exclusion_mask)
+                                                            exclusion_mask=exclusion_mask,
+                                                            anisotropic=self.is_anisotropic)
 
         # mask excluded area in the grow map
         nearest[exclusion_mask] = 1
