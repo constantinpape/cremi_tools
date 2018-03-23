@@ -1,5 +1,5 @@
 import multiprocessing
-# from concurrent import futures
+from concurrent import futures
 import numpy as np
 import vigra
 from scipy.ndimage.morphology import distance_transform_edt
@@ -24,6 +24,7 @@ def seeds_from_zero_components(input_, sigma, exclusion_mask=None, anisotropic=F
             seed_map = np.zeros_like(input_, dtype='float32')
             for z in range(seed_map.shape[0]):
                 seed_map[z] = vigra.filters.gaussianSmoothing(input_[z], sigma)
+                seed_map[z] -= seed_map[z].min()
         else:
             seed_map = vigra.filters.gaussianSmoothing(input_, sigma)
     else:
@@ -70,7 +71,8 @@ def filter_by_size(hmap, ws, size_filter=25):
     ids, sizes = np.unique(ws, return_counts=True)
     mask = np.ma.masked_array(ws, np.in1d(ws, ids[sizes < size_filter])).mask
     ws[mask] = 0
-    ws, max_id = vigra.analysis.watershedsNew(hmap, seeds=ws)
+    ws, _ = vigra.analysis.watershedsNew(hmap, seeds=ws)
+    ws, max_id, _ = vigra.analysis.relabelConsecutive(ws, start_label=1, keep_zeros=True)
     return ws, max_id
 
 
@@ -203,23 +205,37 @@ class DTWatershed(Oversegmenter):
         self.is_anisotropic = is_anisotropic
         self.n_threads = multiprocessing.cpu_count() if n_threads == -1 else n_threads
 
+    def _ws_slice(self, z, input_, output):
+        thresholded = input_[z] < self.threshold_dt
+        dt = distance_transform_edt(thresholded).astype('float32')
+        if self.sigma_seeds > 0.:
+            dt = vigra.filters.gaussianSmoothing(dt, self.sigma_seeds)
+        seeds = vigra.analysis.localMaxima(dt, allowPlateaus=True, allowAtBorder=True, marker=np.nan)
+        seeds = vigra.analysis.labelImageWithBackground(np.isnan(seeds).view('uint8'))
+        ws, max_id = vigra.analysis.watershedsNew(input_[z], seeds=seeds)
+        if self.size_filter > 0:
+            ws, max_id = filter_by_size(input_[z], ws, self.size_filter)
+        output[z] = ws.astype('uint64')
+        return max_id
+
     def _oversegmentation_impl(self, input_):
-        assert input_.ndim == 3
+        assert input_.ndim == 3, "%i" % input_.ndim
 
         if self.is_anisotropic:
-            seeds, _ = seeds_from_distance_transform_2d(input_,
-                                                        self.threshold_dt,
-                                                        self.sigma_seeds)
+            ws = np.zeros_like(input_, dtype='uint64')
+            with futures.ThreadPoolExecutor(self.n_threads) as tp:
+                tasks = [tp.submit(self._ws_slice, z, input_, ws) for z in range(input_.shape[0])]
+                offsets = np.array([t.result() for t in tasks], dtype='uint64')
+            last_max_id = offsets[-1]
+            offsets = np.roll(offsets, 1)
+            offsets = np.cumsum(offsets)
+            ws += offsets[:, None, None]
+            max_id = offsets[-1] + last_max_id
         else:
             seeds, _ = seeds_from_distance_transform(input_,
                                                      self.threshold_dt,
                                                      self.sigma_seeds)
-
-        if self.is_anisotropic:
-            ws, max_id = run_watershed_2d(input_, seeds)
-        else:
             ws, max_id = run_watershed(input_, seeds)
-        if self.size_filter:
             ws, max_id = filter_by_size(input_, ws, self.size_filter)
 
         return ws, max_id
