@@ -1,2 +1,3 @@
-from .evaluation import build_skeleton_metrics, smooth_distance_statistics, smooth_distance_statistics_bfs
+from .evaluation import build_skeleton_metrics
 from .parser import SkeletonParserSWC, SkeletonParserCSV, visualize_skeletons
+from .tree_smoothing import smooth_sliding_window, smooth_bfs
