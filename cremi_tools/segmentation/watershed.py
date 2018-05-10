@@ -218,19 +218,38 @@ class DTWatershed(Oversegmenter):
         output[z] = ws.astype('uint64')
         return max_id
 
+    def _ws_slice_masked(self, z, input_, output, exclusion_mask):
+        thresholded = input_[z] < self.threshold_dt
+        dt = distance_transform_edt(thresholded).astype('float32')
+        if self.sigma_seeds > 0.:
+            dt = vigra.filters.gaussianSmoothing(dt, self.sigma_seeds)
+        seeds = vigra.analysis.localMaxima(dt, allowPlateaus=True, allowAtBorder=True, marker=np.nan)
+        seeds = vigra.analysis.labelImageWithBackground(np.isnan(seeds).view('uint8'))
+        ws, max_id = vigra.analysis.watershedsNew(input_[z], seeds=seeds)
+        if self.size_filter > 0:
+            ws, max_id = filter_by_size(input_[z], ws, self.size_filter)
+        ws[exclusion_mask[z]] = 0
+        output[z] = ws.astype('uint64')
+        return int(ws.max())
+
+    def _add_offset(self, z, output, offsets, mask):
+        output[z][mask[z]] += offsets[z]
+
     def _oversegmentation_impl(self, input_):
         assert input_.ndim == 3, "%i" % input_.ndim
 
         if self.is_anisotropic:
             ws = np.zeros_like(input_, dtype='uint64')
             with futures.ThreadPoolExecutor(self.n_threads) as tp:
-                tasks = [tp.submit(self._ws_slice, z, input_, ws) for z in range(input_.shape[0])]
+                tasks = [tp.submit(self._ws_slice, z, input_, ws)
+                         for z in range(input_.shape[0])]
                 offsets = np.array([t.result() for t in tasks], dtype='uint64')
             last_max_id = offsets[-1]
             offsets = np.roll(offsets, 1)
             offsets = np.cumsum(offsets)
             ws += offsets[:, None, None]
             max_id = offsets[-1] + last_max_id
+
         else:
             seeds, _ = seeds_from_distance_transform(input_,
                                                      self.threshold_dt,
@@ -249,23 +268,30 @@ class DTWatershed(Oversegmenter):
         input_[exclusion_mask] = 1
 
         if self.is_anisotropic:
-            seeds, _ = seeds_from_distance_transform_2d(input_,
-                                                        self.threshold_dt,
-                                                        self.sigma_seeds)
+            ws = np.zeros_like(input_, dtype='uint64')
+            with futures.ThreadPoolExecutor(self.n_threads) as tp:
+                tasks = [tp.submit(self._ws_slice_masked, z, input_, ws, exclusion_mask)
+                         for z in range(input_.shape[0])]
+                offsets = np.array([t.result() for t in tasks], dtype='uint64')
+
+            last_max_id = offsets[-1]
+            offsets = np.roll(offsets, 1)
+            offsets[0] = 0
+            offsets = np.cumsum(offsets)
+            max_id = offsets[-1] + last_max_id
+
+            with futures.ThreadPoolExecutor(self.n_threads) as tp:
+                tasks = [tp.submit(self._add_offset, z, ws, offsets, mask)
+                         for z in range(input_.shape[0])]
+                [t.result() for t in tasks]
+
         else:
             seeds, _ = seeds_from_distance_transform(input_,
                                                      self.threshold_dt,
                                                      self.sigma_seeds)
-
-        if self.is_anisotropic:
-            ws, max_id = run_watershed_2d(input_, seeds)
-        else:
             ws, max_id = run_watershed(input_, seeds)
-
-        if self.size_filter:
             ws, max_id = filter_by_size(input_, ws, self.size_filter)
-
-        ws[exclusion_mask] = 0
-        ws, max_id, _ = vigra.analysis.relabelConsecutive(ws, keep_zeros=True)
+            ws[exclusion_mask] = 0
+            ws, max_id, _ = vigra.analysis.relabelConsecutive(ws, keep_zeros=True)
 
         return ws, max_id
