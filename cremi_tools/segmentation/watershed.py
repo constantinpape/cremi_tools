@@ -90,22 +90,27 @@ def run_watershed(hmap, seeds):
 
 class LRAffinityWatershed(Oversegmenter):
     def __init__(self, threshold_cc, threshold_dt, sigma_seeds, size_filter=25,
-                 is_anisotropic=True, seed_channel=None, **super_kwargs):
+                 is_anisotropic=True, channel_weights=None, **super_kwargs):
         super(LRAffinityWatershed, self).__init__(**super_kwargs)
         self.threshold_cc = threshold_cc
         self.threshold_dt = threshold_dt
         self.sigma_seeds = sigma_seeds
         self.size_filter = size_filter
         self.is_anisotropic = is_anisotropic
-        if seed_channel is not None:
-            assert isinstance(seed_channel, list)
-            self.seed_channel = seed_channel
+        if channel_weights is not None:
+            assert isinstance(channel_weights, (list, tuple))
+            self.channel_weights = channel_weights
         else:
-            self.seed_channel = None
+            self.channel_weights = None
 
     def _oversegmentation_impl(self, input_):
         assert input_.ndim == 4
-        full = np.mean(input_, axis=0) if self.seed_channel is None else np.mean(input_[self.seed_channel], axis=0)
+        if self.channel_weights is not None:
+            assert len(self.channel_weights) == input_.shape[0]
+            full = np.average(input_, axis=0, weights=self.channel_weights)
+        else:
+            full = np.mean(input_, axis=0)
+
         nn_slice = slice(1, 3) if self.is_anisotropic else slice(0, 3)
         nearest = np.mean(input_[nn_slice], axis=0)
 
@@ -145,7 +150,12 @@ class LRAffinityWatershed(Oversegmenter):
 
     def _oversegmentation_impl_masked(self, input_, mask):
         assert input_.ndim == 4
-        full = np.mean(input_, axis=0) if self.seed_channel is None else np.mean(input_[self.seed_channel], axis=0)
+        if self.channel_weights is not None:
+            assert len(self.channel_weights) == input_.shape[0]
+            full = np.average(input_, axis=0, weights=self.channel_weights)
+        else:
+            full = np.mean(input_, axis=0)
+
         nn_slice = slice(1, 3) if self.is_anisotropic else slice(0, 3)
         nearest = np.mean(input_[nn_slice], axis=0)
         # get the excluded area (= inverted mask)
