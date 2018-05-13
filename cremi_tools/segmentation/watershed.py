@@ -2,16 +2,20 @@ import multiprocessing
 from concurrent import futures
 import numpy as np
 import vigra
-from scipy.ndimage.morphology import distance_transform_edt
+from scipy.ndimage.morphology import distance_transform_edt, binary_opening
 
 from .base import Oversegmenter
 
 
-def seeds_from_connected_components(input_, threshold, exclusion_mask=None):
+def seeds_from_connected_components(input_, threshold,
+                                    exclusion_mask=None, closing_iterations=0):
     # generate seeds from thresholded connected components
     thresholded = input_ <= threshold
     if exclusion_mask is not None:
         thresholded[exclusion_mask] = 0
+    if closing_iterations > 0:
+        thresholded = binary_opening(thresholded,
+                                     iterations=closing_iterations)
     seeds = vigra.analysis.labelVolumeWithBackground(thresholded.view('uint8'))
     max_label = int(seeds.max())
     return seeds, max_label + 1
@@ -90,7 +94,8 @@ def run_watershed(hmap, seeds):
 
 class LRAffinityWatershed(Oversegmenter):
     def __init__(self, threshold_cc, threshold_dt, sigma_seeds, size_filter=25,
-                 is_anisotropic=True, channel_weights=None, **super_kwargs):
+                 is_anisotropic=True, channel_weights=None,
+                 closing_iterations=0, **super_kwargs):
         super(LRAffinityWatershed, self).__init__(**super_kwargs)
         self.threshold_cc = threshold_cc
         self.threshold_dt = threshold_dt
@@ -102,11 +107,13 @@ class LRAffinityWatershed(Oversegmenter):
             self.channel_weights = channel_weights
         else:
             self.channel_weights = None
+        self.closing_iterations = closing_iterations
 
     def _oversegmentation_impl(self, input_):
         assert input_.ndim == 4
         if self.channel_weights is not None:
-            assert len(self.channel_weights) == input_.shape[0]
+            assert len(self.channel_weights) == input_.shape[0], "%i, %i" % (len(self.channel_weights),
+                                                                             input_.shape[0])
             full = np.average(input_, axis=0, weights=self.channel_weights)
         else:
             full = np.mean(input_, axis=0)
@@ -115,7 +122,8 @@ class LRAffinityWatershed(Oversegmenter):
         nearest = np.mean(input_[nn_slice], axis=0)
 
         if self.threshold_cc > 0:
-            seeds, seed_offset = seeds_from_connected_components(full, self.threshold_cc)
+            seeds, seed_offset = seeds_from_connected_components(full, self.threshold_cc,
+                                                                 closing_iterations=self.closing_iterations)
         else:
             seeds, seed_offset = seeds_from_zero_components(full,
                                                             self.sigma_seeds,
@@ -164,7 +172,8 @@ class LRAffinityWatershed(Oversegmenter):
         if self.threshold_cc > 0:
             seeds, seed_offset = seeds_from_connected_components(full,
                                                                  self.threshold_cc,
-                                                                 exclusion_mask)
+                                                                 exclusion_mask,
+                                                                 closing_iterations=self.closing_iterations)
         else:
             seeds, seed_offset = seeds_from_zero_components(full,
                                                             self.sigma_seeds,
