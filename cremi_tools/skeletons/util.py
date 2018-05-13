@@ -8,7 +8,7 @@ def visualize_skeletons(shape, skeletons, radius=5):
     vol = np.zeros(shape, dtype='uint32')
     for skel_id, values in skeletons.items():
         assert 'coordinates' in values
-        coords = values['coordinates']
+        coords = values['coordinates'].astype('uint64')
         for coord in coords:
             z, y, x = coord
             rr, cc = circle(y, x, radius, shape=shape[1:])
