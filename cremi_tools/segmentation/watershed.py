@@ -94,7 +94,7 @@ def run_watershed(hmap, seeds):
 
 class LRAffinityWatershed(Oversegmenter):
     def __init__(self, threshold_cc, threshold_dt, sigma_seeds, size_filter=25,
-                 is_anisotropic=True, channel_weights=None,
+                 is_anisotropic=True, sigma_pre=0.,
                  closing_iterations=0, **super_kwargs):
         super(LRAffinityWatershed, self).__init__(**super_kwargs)
         self.threshold_cc = threshold_cc
@@ -102,21 +102,18 @@ class LRAffinityWatershed(Oversegmenter):
         self.sigma_seeds = sigma_seeds
         self.size_filter = size_filter
         self.is_anisotropic = is_anisotropic
-        if channel_weights is not None:
-            assert isinstance(channel_weights, (list, tuple))
-            self.channel_weights = channel_weights
-        else:
-            self.channel_weights = None
         self.closing_iterations = closing_iterations
+        self.sigma_pre = sigma_pre
 
     def _oversegmentation_impl(self, input_):
         assert input_.ndim == 4
-        if self.channel_weights is not None:
-            assert len(self.channel_weights) == input_.shape[0], "%i, %i" % (len(self.channel_weights),
-                                                                             input_.shape[0])
-            full = np.average(input_, axis=0, weights=self.channel_weights)
-        else:
-            full = np.mean(input_, axis=0)
+        full = np.max(input_, axis=0)
+        if self.sigma_pre > 0:
+            sig_pre = (self.sigma_pre / 10, self.sigma_pre, self.sigma_pre) if self.is_anisotropic else\
+                self.sigma_pre
+            full = vigra.filters.gaussianSmoothing(full, sigma=sig_pre)
+            full -= full.min()
+            full /= full.max()
 
         nn_slice = slice(1, 3) if self.is_anisotropic else slice(0, 3)
         nearest = np.mean(input_[nn_slice], axis=0)
@@ -158,11 +155,13 @@ class LRAffinityWatershed(Oversegmenter):
 
     def _oversegmentation_impl_masked(self, input_, mask):
         assert input_.ndim == 4
-        if self.channel_weights is not None:
-            assert len(self.channel_weights) == input_.shape[0]
-            full = np.average(input_, axis=0, weights=self.channel_weights)
-        else:
-            full = np.mean(input_, axis=0)
+        full = np.max(input_, axis=0)
+        if self.sigma_pre > 0:
+            sig_pre = (self.sigma_pre / 10, self.sigma_pre, self.sigma_pre) if self.is_anisotropic else\
+                self.sigma_pre
+            full = vigra.filters.gaussianSmoothing(full, sigma=sig_pre)
+            full -= full.min()
+            full /= full.max()
 
         nn_slice = slice(1, 3) if self.is_anisotropic else slice(0, 3)
         nearest = np.mean(input_[nn_slice], axis=0)
