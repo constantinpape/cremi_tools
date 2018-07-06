@@ -269,3 +269,57 @@ class DTWatershed(Oversegmenter):
         ws, max_id, _ = vigra.analysis.relabelConsecutive(ws, keep_zeros=True)
 
         return ws, max_id
+
+
+class Watershed(Oversegmenter):
+    def __init__(self, sigma, size_filter=25,
+                 is_anisotropic=True, n_threads=-1, **super_kwargs):
+        super(Watershed, self).__init__(**super_kwargs)
+        self.sigma = sigma
+        self.size_filter = size_filter
+        self.is_anisotropic = is_anisotropic
+        self.n_threads = multiprocessing.cpu_count() if n_threads == -1 else n_threads
+
+    def _ws_slice(self, z, input_, output):
+        if self.sigma > 0.:
+            dt = vigra.filters.gaussianSmoothing(input_, self.sigma)
+        seeds = vigra.analysis.localMaxima(dt, allowPlateaus=True, allowAtBorder=True, marker=np.nan)
+        seeds = vigra.analysis.labelImageWithBackground(np.isnan(seeds).view('uint8'))
+        ws, max_id = vigra.analysis.watershedsNew(input_[z], seeds=seeds)
+        if self.size_filter > 0:
+            ws, max_id = filter_by_size(input_[z], ws, self.size_filter)
+        output[z] = ws.astype('uint64')
+        return max_id
+
+    def _oversegmentation_impl(self, input_):
+        assert input_.ndim == 3, "%i" % input_.ndim
+
+        if self.is_anisotropic:
+            ws = np.zeros_like(input_, dtype='uint64')
+            with futures.ThreadPoolExecutor(self.n_threads) as tp:
+                tasks = [tp.submit(self._ws_slice, z, input_, ws) for z in range(input_.shape[0])]
+                offsets = np.array([t.result() for t in tasks], dtype='uint64')
+            last_max_id = offsets[-1]
+            offsets = np.roll(offsets, 1)
+            offsets = np.cumsum(offsets)
+            ws += offsets[:, None, None]
+            max_id = offsets[-1] + last_max_id
+        else:
+            seeds, _ = seeds_from_distance_transform(input_,
+                                                     self.threshold_dt,
+                                                     self.sigma_seeds)
+            if self.sigma > 0.:
+                seeds = vigra.filters.gaussianSmoothing(input_, self.sigma)
+            else:
+                seeds = input_.copy()
+            seeds = vigra.analysis.localMaxima3D(seeds, allowPlateaus=True, allowAtBorder=True, marker=np.nan)
+            seeds = vigra.analysis.labelImageWithBackground(np.isnan(seeds).view('uint8'))
+            ws, max_id = run_watershed(input_, seeds)
+            if self.size_filter:
+                ws, max_id = filter_by_size(input_, ws, self.size_filter)
+
+        return ws, max_id
+
+    def _oversegmentation_impl_masked(self, input_, mask):
+        assert input_.ndim == 3
+        raise NotImplementedError("Not Implemented!")
