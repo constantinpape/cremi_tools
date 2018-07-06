@@ -2,16 +2,20 @@ import multiprocessing
 from concurrent import futures
 import numpy as np
 import vigra
-from scipy.ndimage.morphology import distance_transform_edt
+from scipy.ndimage.morphology import distance_transform_edt, binary_opening
 
 from .base import Oversegmenter
 
 
-def seeds_from_connected_components(input_, threshold, exclusion_mask=None):
+def seeds_from_connected_components(input_, threshold,
+                                    exclusion_mask=None, closing_iterations=0):
     # generate seeds from thresholded connected components
     thresholded = input_ <= threshold
     if exclusion_mask is not None:
         thresholded[exclusion_mask] = 0
+    if closing_iterations > 0:
+        thresholded = binary_opening(thresholded,
+                                     iterations=closing_iterations)
     seeds = vigra.analysis.labelVolumeWithBackground(thresholded.view('uint8'))
     max_label = int(seeds.max())
     return seeds, max_label + 1
@@ -90,27 +94,33 @@ def run_watershed(hmap, seeds):
 
 class LRAffinityWatershed(Oversegmenter):
     def __init__(self, threshold_cc, threshold_dt, sigma_seeds, size_filter=25,
-                 is_anisotropic=True, seed_channel=None, **super_kwargs):
+                 is_anisotropic=True, sigma_pre=0.,
+                 closing_iterations=0, **super_kwargs):
         super(LRAffinityWatershed, self).__init__(**super_kwargs)
         self.threshold_cc = threshold_cc
         self.threshold_dt = threshold_dt
         self.sigma_seeds = sigma_seeds
         self.size_filter = size_filter
         self.is_anisotropic = is_anisotropic
-        if seed_channel is not None:
-            assert isinstance(seed_channel, list)
-            self.seed_channel = seed_channel
-        else:
-            self.seed_channel = None
+        self.closing_iterations = closing_iterations
+        self.sigma_pre = sigma_pre
 
     def _oversegmentation_impl(self, input_):
         assert input_.ndim == 4
-        full = np.mean(input_, axis=0) if self.seed_channel is None else np.mean(input_[self.seed_channel], axis=0)
+        full = np.max(input_, axis=0)
+        if self.sigma_pre > 0:
+            sig_pre = (self.sigma_pre / 10, self.sigma_pre, self.sigma_pre) if self.is_anisotropic else\
+                self.sigma_pre
+            full = vigra.filters.gaussianSmoothing(full, sigma=sig_pre)
+            full -= full.min()
+            full /= full.max()
+
         nn_slice = slice(1, 3) if self.is_anisotropic else slice(0, 3)
         nearest = np.mean(input_[nn_slice], axis=0)
 
         if self.threshold_cc > 0:
-            seeds, seed_offset = seeds_from_connected_components(full, self.threshold_cc)
+            seeds, seed_offset = seeds_from_connected_components(full, self.threshold_cc,
+                                                                 closing_iterations=self.closing_iterations)
         else:
             seeds, seed_offset = seeds_from_zero_components(full,
                                                             self.sigma_seeds,
@@ -145,7 +155,14 @@ class LRAffinityWatershed(Oversegmenter):
 
     def _oversegmentation_impl_masked(self, input_, mask):
         assert input_.ndim == 4
-        full = np.mean(input_, axis=0) if self.seed_channel is None else np.mean(input_[self.seed_channel], axis=0)
+        full = np.max(input_, axis=0)
+        if self.sigma_pre > 0:
+            sig_pre = (self.sigma_pre / 10, self.sigma_pre, self.sigma_pre) if self.is_anisotropic else\
+                self.sigma_pre
+            full = vigra.filters.gaussianSmoothing(full, sigma=sig_pre)
+            full -= full.min()
+            full /= full.max()
+
         nn_slice = slice(1, 3) if self.is_anisotropic else slice(0, 3)
         nearest = np.mean(input_[nn_slice], axis=0)
         # get the excluded area (= inverted mask)
@@ -154,7 +171,8 @@ class LRAffinityWatershed(Oversegmenter):
         if self.threshold_cc > 0:
             seeds, seed_offset = seeds_from_connected_components(full,
                                                                  self.threshold_cc,
-                                                                 exclusion_mask)
+                                                                 exclusion_mask,
+                                                                 closing_iterations=self.closing_iterations)
         else:
             seeds, seed_offset = seeds_from_zero_components(full,
                                                             self.sigma_seeds,
@@ -218,19 +236,38 @@ class DTWatershed(Oversegmenter):
         output[z] = ws.astype('uint64')
         return max_id
 
+    def _ws_slice_masked(self, z, input_, output, exclusion_mask):
+        thresholded = input_[z] < self.threshold_dt
+        dt = distance_transform_edt(thresholded).astype('float32')
+        if self.sigma_seeds > 0.:
+            dt = vigra.filters.gaussianSmoothing(dt, self.sigma_seeds)
+        seeds = vigra.analysis.localMaxima(dt, allowPlateaus=True, allowAtBorder=True, marker=np.nan)
+        seeds = vigra.analysis.labelImageWithBackground(np.isnan(seeds).view('uint8'))
+        ws, max_id = vigra.analysis.watershedsNew(input_[z], seeds=seeds)
+        if self.size_filter > 0:
+            ws, max_id = filter_by_size(input_[z], ws, self.size_filter)
+        ws[exclusion_mask[z]] = 0
+        output[z] = ws.astype('uint64')
+        return int(ws.max())
+
+    def _add_offset(self, z, output, offsets, mask):
+        output[z][mask[z]] += offsets[z]
+
     def _oversegmentation_impl(self, input_):
         assert input_.ndim == 3, "%i" % input_.ndim
 
         if self.is_anisotropic:
             ws = np.zeros_like(input_, dtype='uint64')
             with futures.ThreadPoolExecutor(self.n_threads) as tp:
-                tasks = [tp.submit(self._ws_slice, z, input_, ws) for z in range(input_.shape[0])]
+                tasks = [tp.submit(self._ws_slice, z, input_, ws)
+                         for z in range(input_.shape[0])]
                 offsets = np.array([t.result() for t in tasks], dtype='uint64')
             last_max_id = offsets[-1]
             offsets = np.roll(offsets, 1)
             offsets = np.cumsum(offsets)
             ws += offsets[:, None, None]
             max_id = offsets[-1] + last_max_id
+
         else:
             seeds, _ = seeds_from_distance_transform(input_,
                                                      self.threshold_dt,
@@ -249,24 +286,31 @@ class DTWatershed(Oversegmenter):
         input_[exclusion_mask] = 1
 
         if self.is_anisotropic:
-            seeds, _ = seeds_from_distance_transform_2d(input_,
-                                                        self.threshold_dt,
-                                                        self.sigma_seeds)
+            ws = np.zeros_like(input_, dtype='uint64')
+            with futures.ThreadPoolExecutor(self.n_threads) as tp:
+                tasks = [tp.submit(self._ws_slice_masked, z, input_, ws, exclusion_mask)
+                         for z in range(input_.shape[0])]
+                offsets = np.array([t.result() for t in tasks], dtype='uint64')
+
+            last_max_id = offsets[-1]
+            offsets = np.roll(offsets, 1)
+            offsets[0] = 0
+            offsets = np.cumsum(offsets)
+            max_id = offsets[-1] + last_max_id
+
+            with futures.ThreadPoolExecutor(self.n_threads) as tp:
+                tasks = [tp.submit(self._add_offset, z, ws, offsets, mask)
+                         for z in range(input_.shape[0])]
+                [t.result() for t in tasks]
+
         else:
             seeds, _ = seeds_from_distance_transform(input_,
                                                      self.threshold_dt,
                                                      self.sigma_seeds)
-
-        if self.is_anisotropic:
-            ws, max_id = run_watershed_2d(input_, seeds)
-        else:
             ws, max_id = run_watershed(input_, seeds)
-
-        if self.size_filter:
             ws, max_id = filter_by_size(input_, ws, self.size_filter)
-
-        ws[exclusion_mask] = 0
-        ws, max_id, _ = vigra.analysis.relabelConsecutive(ws, keep_zeros=True)
+            ws[exclusion_mask] = 0
+            ws, max_id, _ = vigra.analysis.relabelConsecutive(ws, keep_zeros=True)
 
         return ws, max_id
 
