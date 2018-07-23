@@ -1,0 +1,29 @@
+#! /g/kreshuk/pape/Work/software/conda/miniconda3/envs/viewer/bin/python
+# TODO copy this to the bin and do adjustment during conda install !
+# adjust shebang to path of your conda env
+
+import argparse
+import h5py
+from cremi_tools.viewer.volumina import view
+
+
+def run_viewer(paths, keys):
+    assert len(paths) == len(keys)
+    inputs = []
+    for p, k in zip(paths, keys):
+        with h5py.File(p) as f:
+            d = f[k][:]
+            if d.ndim == 4:
+                d = d.transpose((1, 2, 3, 0))
+            inputs.append(d)
+    view(inputs, keys)
+
+
+if __name__ == '__main__':
+    # TODO add doc-string
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--inputs', type=str, nargs='+')
+    parser.add_argument('--input-keys', type=str, nargs='+')
+    # parser.add_argument('--labels', type=str, nargs='+', default='')
+    args = parser.parse_args()
+    run_viewer(args.inputs, args.input_keys)
