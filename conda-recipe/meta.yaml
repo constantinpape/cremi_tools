@@ -25,12 +25,15 @@ requirements:
 
   run:
     - python {{PY_VER}}*
-    - nifty
-    - vigra
+    - ilastik-meta
+    - pyopengl
+    - pyqtgraph
+    - future
+    - qimage2ndarray
 
 test:
   imports:
-    - nifty
+    - cremi_tools
 
 about:
   home: https://github.com/constantinpape/cremi_tools
