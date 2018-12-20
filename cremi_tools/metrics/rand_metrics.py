@@ -7,7 +7,7 @@ import scipy.sparse as sparse
 # https://github.com/janelia-flyem/gala/blob/master/gala/evaluate.py
 
 
-def adapted_rand(seg, gt, all_stats=False):
+def adapted_rand(seg, gt, all_stats=False, ignore_label=True):
     """Compute Adapted Rand error.
     Parameters
     ----------
@@ -17,6 +17,8 @@ def adapted_rand(seg, gt, all_stats=False):
         the groundtruth to score against, where each value is a label
     all_stats : boolean, optional
         whether to also return precision and recall as a 3-tuple with rand_error
+    ignore_label: boolean, optional
+        whether to ignore the zero label
     Returns
     -------
     are : float
@@ -39,9 +41,14 @@ def adapted_rand(seg, gt, all_stats=False):
 
     p_ij = sparse.csr_matrix((ones_data, (segA[:], segB[:])), shape=(n_labels_A, n_labels_B))
 
-    a = p_ij[1:n_labels_A, :]
-    b = p_ij[1:n_labels_A, 1:n_labels_B]
-    c = p_ij[1:n_labels_A, 0].todense()
+    if ignore_label:
+        a = p_ij[1:n_labels_A, :]
+        b = p_ij[1:n_labels_A, 1:n_labels_B]
+        c = p_ij[1:n_labels_A, 0].todense()
+    else:
+        a = p_ij[:n_labels_A, :]
+        b = p_ij[:n_labels_A, 1:n_labels_B]
+        c = p_ij[:n_labels_A, 0].todense()
     d = b.multiply(b)
 
     a_i = np.array(a.sum(1))
