@@ -5,10 +5,13 @@ from cremi_tools.viewer.volumina import view_container
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('path', type=str)
-    parser.add_argument('--ndim', type=int, default=3)
-    parser.add_argument('--shape', type=int, nargs='+', default=None)
+    parser = argparse.ArgumentParser(description='Display all datasets in a h5 or zarr/n5 container (file).')
+    parser.add_argument('path', type=str,
+                        help='path to the file')
+    parser.add_argument('--ndim', type=int, default=3,
+                        help='number of dimensions of datasets to load')
+    parser.add_argument('--shape', type=int, nargs='+', default=None,
+                        help='shape of datasets to load (will take shape of the first dataset encountered by default)')
 
     args = parser.parse_args()
     view_container(args.path, args.ndim, args.shape)
