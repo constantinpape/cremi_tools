@@ -2,18 +2,30 @@
 
 Tools for the CREMI challenge and general neuron segmentation.
 
-## Segmentation
+## Setup
 
-The module `cremi_tools.segmentation` provides function for 3D segmentation.
-The following algorithms are implemtted:
-
-- Distance Transform Watershed ()
-- TODO list all 
-
-Requirements:
-
-- `nifty`: `conda install -c cpape nifty`
-- `vigra`: `conda install -c conda-forge vigra`
-
+```
+$ python setup.py install
+```
+TODO provide environment.yaml
 
 ## Viewer
+
+Provides convenience wrapper around volume viewe:
+- volumina
+- BigDataViewer
+- Bigcat
+
+Will install a script called `view_container` that can be used to
+display all volumes in a hdf5 or zarr/n5 container (file). Call via
+```
+$ view_container /path/to/container.h5
+```
+
+## Alignment
+
+TODO explain
+
+## Segmentation
+
+TODO outdated? refactor?
