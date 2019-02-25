@@ -8,9 +8,9 @@ def realign(raw_file,
             labels_file=None,
             labels_key=None):
     assert sample in ('A', 'B', 'C', 'A+', 'B+', 'C+')
-    assert os.path.exists(raw_file)
+    assert os.path.exists(raw_file), raw_file
     if labels_file is not None:
-        assert os.path.exists(raw_file)
+        assert os.path.exists(labels_file)
         assert labels_key is not None
 
     # get the directory of this file and get paths to trafos and jar
