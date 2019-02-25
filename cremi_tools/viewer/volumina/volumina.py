@@ -1,7 +1,5 @@
-#!/usr/bin/python
 from __future__ import print_function
 
-import argparse
 import os
 import sys
 import numpy as np
@@ -133,13 +131,3 @@ def view_container(path, ndim=3, shape=None):
         append_data(f, data, labels, shape, ndim, '')
 
     view(data, labels)
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('path', type=str)
-    parser.add_argument('--ndim', type=int, default=3)
-    parser.add_argument('--shape', type=int, nargs='+', default=None)
-
-    args = parser.parse_args()
-    view_container(args.path, args.ndim, args.shape)
