@@ -1,1 +1,1 @@
-from .volumina import view
+from .volumina import view, view_container

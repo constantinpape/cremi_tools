@@ -11,10 +11,12 @@ except ImportError:
 
 import h5py
 from h5py._hl.dataset import Dataset as H5Dataset
+from h5py._hl.group import Group as H5Group
 
 try:
     import z5py
     from z5py.dataset import Dataset as Z5Dataset
+    from z5py.group import Group as Z5Group
 except ImportError:
     z5py = None
     Z5Dataset = None
@@ -76,7 +78,7 @@ def view(data, labels=None, layer_types=None):
 
 def open_file(path):
     ext = os.path.splitext(path)[1]
-    if ext.lower in ('.h5', '.hdf5', '.hdf'):
+    if ext.lower() in ('.h5', '.hdf5', '.hdf'):
         return h5py.File(path, mode='r')
     elif ext.lower() in ('.n5', '.zr', '.zarr'):
         assert z5py is not None, "z5py not available"
@@ -112,8 +114,10 @@ def append_data(group, data, labels, shape, ndim, prefix):
             # non-matching number of dimensions: continue
             else:
                 continue
-        else:
+        elif isinstance(obj, (H5Group, Z5Group)):
             append_data(obj, data, labels, shape, ndim, name)
+        else:
+            continue
 
 
 def view_container(path, ndim=3, shape=None):
