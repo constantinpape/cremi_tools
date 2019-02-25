@@ -1,5 +1,8 @@
+#!/usr/bin/python
 from __future__ import print_function
 
+import argparse
+import os
 import sys
 import numpy as np
 try:
@@ -7,6 +10,16 @@ try:
     from PyQt5.QtWidgets import QApplication
 except ImportError:
     from PyQt4.QtGui import QColor, QApplication
+
+import h5py
+from h5py._hl.dataset import Dataset as H5Dataset
+
+try:
+    import z5py
+    from z5py.dataset import Dataset as Z5Dataset
+except ImportError:
+    z5py = None
+    Z5Dataset = None
 
 
 def _name_to_layer(v, d, layer_type, layer_name):
@@ -61,3 +74,72 @@ def view(data, labels=None, layer_types=None):
             _name_to_layer(v, d, layer_types[i], layer_name)
 
     app.exec_()
+
+
+def open_file(path):
+    ext = os.path.splitext(path)[1]
+    if ext.lower in ('.h5', '.hdf5', '.hdf'):
+        return h5py.File(path, mode='r')
+    elif ext.lower() in ('.n5', '.zr', '.zarr'):
+        assert z5py is not None, "z5py not available"
+        return z5py.File(path, mode='r')
+    else:
+        assert False, "Unknown extension: %s" % ext
+
+
+def append_data(group, data, labels, shape, ndim, prefix):
+    axis_reorder = (1, 2, 3, 0) if ndim == 3 else (1, 2, 0)
+    for key, obj in group.items():
+        name = prefix + '/' + key
+        if isinstance(obj, (H5Dataset, Z5Dataset)):
+            ds_shape = obj.shape
+            # check for compatability of ndim:
+            # same number of dimensions -> we can load it
+            if len(ds_shape) == ndim:
+                if shape is None:
+                    shape = ds_shape
+                # check that the shapes match, otherwise continue
+                if shape != ds_shape:
+                    continue
+                data.append(obj[:])
+                labels.append(name)
+            # one dim more -> data with channels, we can load it but need to transpose
+            if len(ds_shape) == ndim + 1:
+                if shape is None:
+                    shape = ds_shape[1:]
+                if shape != ds_shape[1:]:
+                    continue
+                data.append(obj[:].transpose(axis_reorder))
+                labels.append(name)
+            # non-matching number of dimensions: continue
+            else:
+                continue
+        else:
+            append_data(obj, data, labels, shape, ndim, name)
+
+
+def view_container(path, ndim=3, shape=None):
+    """ Display contents of h5 or zarr/n5 container
+    """
+
+    assert os.path.exists(path), path
+    if shape is not None:
+        assert len(shape) == ndim
+
+    data = []
+    labels = []
+
+    with open_file(path) as f:
+        append_data(f, data, labels, shape, ndim, '')
+
+    view(data, labels)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('path', type=str)
+    parser.add_argument('--ndim', type=int, default=3)
+    parser.add_argument('--shape', type=int, nargs='+', default=None)
+
+    args = parser.parse_args()
+    view_container(args.path, args.ndim, args.shape)
