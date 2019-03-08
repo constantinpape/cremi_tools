@@ -15,19 +15,11 @@ offsets = {'A+': (37, 1176, 955),
            'B+': (37, 1076, 1284),
            'C+': (37, 1002, 1165)}
 
-# offsets for larger volumes
-# offsets_test = {
-#     'A': (23, 1060, 839),
-#     'B': (23, 960, 1168),
-#     'C': (23, 886, 1049),
-# }
 
-# TODO find correct values !
-# offsets_train = {
-#     'A': (23, 832, 814),
-#     'B': (23, 960, 1284),
-#     'C': (23, 1002, 1165),
-# }
+# bounding boxes into padded realigned volumes necessary before backaligning
+bounding_boxes = {'A+': (slice(23, 176, None), slice(1060, 2821, None), slice(839, 2519, None)),
+                  'B+': (slice(23, 176, None), slice(960, 2893, None), slice(1168, 4194, None)),
+                  'C+': (slice(23, 176, None), slice(886, 2542, None), slice(1049, 2751, None))}
 
 
 def backalign_segmentation(sample, segmentation, out_file,
