@@ -6,17 +6,14 @@ import vigra
 
 from ..io import write_custom_key
 
-# TODO need proper offsets
-offsets = {
-    # value from Stephan's original script:
-    'A+': (37, 1176, 955),
-    # which is
-    #   my orignal crop (23, 1060, 839) for sample A+
-    #   plus context padding (14, 116, 116)
-    # which is exactly the gt bounding box crop
-    'B+': (37, 1076, 1284),
-    'C+': (37, 1002, 1165),
-}
+# value from Stephan's original script:
+# which is
+#   my orignal crop (23, 1060, 839) for sample A+
+#   plus context padding (14, 116, 116)
+# which is exactly the gt bounding box crop
+offsets = {'A+': (37, 1176, 955),
+           'B+': (37, 1076, 1284),
+           'C+': (37, 1002, 1165)}
 
 # offsets for larger volumes
 # offsets_test = {
