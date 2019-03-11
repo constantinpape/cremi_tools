@@ -13,4 +13,6 @@ setup(name='cremi_tools',
                 'cremi_tools/viewer',
                 'cremi_tools/io',
                 'cremi_tools/segmentation'],
-      scripts=['scripts/view_container'])
+      scripts=['scripts/view_container'],
+      package_data={'': ['./cremi_tools/alignment/transformations/*']},
+      include_package_dat=True)

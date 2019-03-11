@@ -16,10 +16,15 @@ offsets = {'A+': (37, 1176, 955),
            'C+': (37, 1002, 1165)}
 
 
+# bounding boxes for the padded inference volumes
+# bounding_boxes = {'A+': (slice(23, 176, None), slice(1060, 2821, None), slice(839, 2519, None)),
+#                   'B+': (slice(23, 176, None), slice(960, 2893, None), slice(1168, 4194, None)),
+#                   'C+': (slice(23, 176, None), slice(886, 2542, None), slice(1049, 2751, None))}
+
 # bounding boxes into padded realigned volumes necessary before backaligning
-bounding_boxes = {'A+': (slice(23, 176, None), slice(1060, 2821, None), slice(839, 2519, None)),
-                  'B+': (slice(23, 176, None), slice(960, 2893, None), slice(1168, 4194, None)),
-                  'C+': (slice(23, 176, None), slice(886, 2542, None), slice(1049, 2751, None))}
+bounding_boxes = {'A+': (slice(37, 162, None), slice(1176, 2705, None), slice(955, 2403, None)),
+                  'B+': (slice(37, 162, None), slice(1076, 2777, None), slice(1284, 4078, None)),
+                  'C+': (slice(37, 162, None), slice(1002, 2426, None), slice(1165, 2635, None))}
 
 
 def backalign_segmentation(sample, segmentation, out_file,
@@ -43,7 +48,7 @@ def backalign_segmentation(sample, segmentation, out_file,
     this_dir = os.path.dirname(os.path.realpath(__file__))
     exe_file = os.path.join(this_dir, exe_file)
     trafo_file = os.path.join(this_dir, trafo_file)
-    assert os.path.exists(exe_file)
+    assert os.path.exists(exe_file), exe_file
 
     source_offset = "%d,%d,%d" % offsets[sample]
     call(["java", "-Xmx6g", "-cp", exe_file, "org.janelia.saalfeldlab.deform.DeformFromAligned",
