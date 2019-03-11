@@ -11,5 +11,6 @@ setup(name='cremi_tools',
                 'cremi_tools/viewer/volumina',
                 'cremi_tools/alignment',
                 'cremi_tools/viewer',
+                'cremi_tools/io',
                 'cremi_tools/segmentation'],
       scripts=['scripts/view_container'])

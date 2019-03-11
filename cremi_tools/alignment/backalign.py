@@ -43,6 +43,7 @@ def backalign_segmentation(sample, segmentation, out_file,
     this_dir = os.path.dirname(os.path.realpath(__file__))
     exe_file = os.path.join(this_dir, exe_file)
     trafo_file = os.path.join(this_dir, trafo_file)
+    assert os.path.exists(exe_file)
 
     source_offset = "%d,%d,%d" % offsets[sample]
     call(["java", "-Xmx6g", "-cp", exe_file, "org.janelia.saalfeldlab.deform.DeformFromAligned",
