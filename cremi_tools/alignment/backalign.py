@@ -21,7 +21,7 @@ offsets = {'A+': (37, 1176, 955),
 #                   'B+': (slice(23, 176, None), slice(960, 2893, None), slice(1168, 4194, None)),
 #                   'C+': (slice(23, 176, None), slice(886, 2542, None), slice(1049, 2751, None))}
 
-# bounding boxes into padded realigned volumes necessary before backaligning
+# bounding boxes into fully padded (realigned) volumes necessary before backaligning
 bounding_boxes = {'A+': (slice(37, 162, None), slice(1176, 2705, None), slice(955, 2403, None)),
                   'B+': (slice(37, 162, None), slice(1076, 2777, None), slice(1284, 4078, None)),
                   'C+': (slice(37, 162, None), slice(1002, 2426, None), slice(1165, 2635, None))}
