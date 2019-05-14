@@ -2,7 +2,18 @@ import numpy as np
 import nifty.graph.rag as nrag
 
 
-def visualize_probabilities(rag, probs, edge_direction=2):
+def get_2d_edges(rag, seg):
+    uv_ids = rag.uvIds()
+    node_z_coords = np.zeros(rag.numberOfNodes, dtype='uint32')
+    for z in range(seg.shape[0]):
+        nodes_z = np.unique(seg[z])
+        node_z_coords[nodes_z] = z
+    edges_2d = node_z_coords[uv_ids[:, 0]] == node_z_coords[uv_ids[:, 1]]
+    assert len(edges_2d) == len(uv_ids)
+    return edges_2d
+
+
+def visualize_probabilities(rag, probs, edge_direction=2, ignore_edges=None):
     assert rag.numberOfEdges == len(probs), "%i, %i" % (rag.numberOfEdges, len(probs))
 
     edge_builder = nrag.ragCoordinates(rag)
@@ -13,13 +24,42 @@ def visualize_probabilities(rag, probs, edge_direction=2):
     edge_map_att[probs <= .1] = 3
     edge_map_att[np.logical_and(probs > .1, probs <= .3)] = 2
     edge_map_att[np.logical_and(probs > .3, probs <= .5)] = 1
-    edge_vol_att = edge_builder.edgesToVolume(edge_map_att, edgeDirection=edge_direction)
+    if ignore_edges is not None:
+        edge_map_att[ignore_edges] = 0
+    edge_vol_att = edge_builder.edgesToVolume(edge_map_att,
+                                              edgeDirection=edge_direction)
 
     # build repulsive edges
     edge_map_rep[np.logical_and(probs > .5, probs <= .7)] = 1
     edge_map_rep[np.logical_and(probs > .7, probs <= .9)] = 2
     edge_map_rep[probs > .9] = 3
-    edge_vol_rep = edge_builder.edgesToVolume(edge_map_rep, edgeDirection=edge_direction)
+    if ignore_edges is not None:
+        edge_map_rep[ignore_edges] = 0
+    edge_vol_rep = edge_builder.edgesToVolume(edge_map_rep,
+                                              edgeDirection=edge_direction)
+
+    # build edge ids
+    edge_ids = np.arange(rag.numberOfEdges).astype('uint32')
+    edge_id_vol = edge_builder.edgesToVolume(edge_ids, edgeDirection=edge_direction)
+    return edge_id_vol, edge_vol_att, edge_vol_rep
+
+
+def visualize_costs(rag, costs, edge_direction=2):
+    assert rag.numberOfEdges == len(costs), "%i, %i" % (rag.numberOfEdges, len(costs))
+
+    edge_builder = nrag.ragCoordinates(rag)
+    edge_map_att = np.zeros_like(costs, dtype='uint32')
+    edge_map_rep = np.zeros_like(costs, dtype='uint32')
+
+    # build attractive edges
+    edge_map_att[costs > 0] = 1
+    edge_vol_att = edge_builder.edgesToVolume(edge_map_att,
+                                              edgeDirection=edge_direction)
+
+    # build repulsive edges
+    edge_map_rep[costs < 0] = 1
+    edge_vol_rep = edge_builder.edgesToVolume(edge_map_rep,
+                                              edgeDirection=edge_direction)
 
     # build edge ids
     edge_ids = np.arange(rag.numberOfEdges).astype('uint32')
@@ -57,13 +97,15 @@ def visualize_probabilities_for_subvolume(sub_ws, probs, uv_ids, edge_direction=
     edge_map_att[sub_probs <= .1] = 3
     edge_map_att[np.logical_and(sub_probs > .1, sub_probs <= .3)] = 2
     edge_map_att[np.logical_and(sub_probs > .3, sub_probs <= .5)] = 1
-    edge_vol_att = edge_builder.edgesToVolume(edge_map_att, edgeDirection=edge_direction)
+    edge_vol_att = edge_builder.edgesToVolume(edge_map_att,
+                                              edgeDirection=edge_direction)
 
     # build repulsive edges
     edge_map_rep[np.logical_and(sub_probs > .5, sub_probs <= .7)] = 1
     edge_map_rep[np.logical_and(sub_probs > .7, sub_probs <= .9)] = 2
     edge_map_rep[sub_probs > .9] = 3
-    edge_vol_rep = edge_builder.edgesToVolume(edge_map_rep, edgeDirection=edge_direction)
+    edge_vol_rep = edge_builder.edgesToVolume(edge_map_rep,
+                                              edgeDirection=edge_direction)
 
     # build edge ids
     edge_ids = np.arange(rag.numberOfEdges).astype('uint32')

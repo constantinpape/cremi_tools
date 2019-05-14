@@ -1,2 +1,3 @@
 from .segmentation_comparison import SegmentationComparison
-from .edge_visualisation import visualize_probabilities, visualize_probabilities_for_subvolume
+from .edge_visualisation import visualize_probabilities, get_2d_edges
+from .edge_visualisation import visualize_probabilities_for_subvolume, visualize_costs
